@@ -176,7 +176,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
         - [@RequestBody的使用_Java_JustryDeng-CSDN博客](https://blog.csdn.net/justry_deng/article/details/80972817)
     - 6、测试业务类
 
-### 3 cloud-consumer-order80微服务消费者订单模块（RestTemplate）
+### 3 cloud-consumer-order801微服务消费者订单模块（RestTemplate）
 
 - 按照以前的步骤编写微服务
 
@@ -387,7 +387,100 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
     - 
 
-### 8.5 支付模块cloud-provider-payment的集群部署
+- Eureka细节：主机名的修改和IP的显示
+
+    ```yaml
+      instance:
+        instance-id: payment8001
+        # 访问路径可以显示ip地址
+        prefer-ip-address: true
+    ```
+
+    
+
+#### 8.5.4 服务发现Discovery
+
+- 对于注册进Eureka里面的微服务，可以通过服务发现来获得该服务的信息
+
+- 在`cloud-provider-payment8001`的主启动类上标注@EnableDiscoveryClient
+
+- 并在Controller类上增加如下方法：
+
+    ```java
+     @GetMapping(value = "/payment/discovery")
+        public Object discovery(){
+            
+            // 获得Eureka中注册所有服务名
+            List<String> services = discoveryClient.getServices();
+            for (String service : services) {
+                log.info("*****service:" + service);
+            }
+    
+            // 获得Eureka中注册的CLOUD-PAYMENT-SERVICE服务的所有实例
+            List<ServiceInstance> instances = discoveryClient.getInstances("CLOUD-PAYMENT-SERVICE");
+            for (ServiceInstance instance : instances) {
+                log.info(instance.getServiceId() + "\t" + instance.getHost() + "\t" + instance.getPort() + "\t" + instance.getUri());
+            }
+    
+            return this.discoveryClient;
+        }
+    ```
+
+- 可以在控制台看到输出的各种微服务的信息：
+
+    ![npfLDY](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/npfLDY.png)
+
+    ![dTYjZF](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/dTYjZF.png)
+
+#### 8.5.5 Eureka的自我保护机制
+
+- ![VQAbXN](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/VQAbXN.png)
+
+    `EMERGENCY! EUREKA MAY BE INCORRECTLY CLAIMING INSTANCES ARE UP WHEN THEY'RE NOT. RENEWALS ARE LESSER THAN THRESHOLD AND HENCE THE INSTANCES ARE NOT BEING EXPIRED JUST TO BE SAFE.`
+
+- **Eureka默认开启自我保护机制**
+
+- **Eureka Server进入保护模式后不会再删除服务注册表中的数据，也就是不会注销任何服务。**【某时刻某一个微服务不可用了，Eureka不会立即清理，依旧会对该微服务信息进行保留】
+
+    - [SpringCloud警告(Eureka)：EMERGENCY! EUREKA MAY BE INCORRECTLY CLAIMING INSTANCES ARE UP WHEN THEY'RE NOT. RENEWALS ARE LESSER THAN THRESHOLD AND HENCE THE INSTANCES ARE NOT BEING EXPIRED JUST TO BE SAFE. - gudi - 博客园](https://www.cnblogs.com/gudi/p/8645370.html)
+    - **默认情况下,如果 Eureka Server在一定时间内没有接收到某个微服务实例的心跳,Eureka将会注销该实例(默认90秒)**。但是当网络分区故障发生(延时、卡顿、拥挤)时,微服务与 EurekaServer之间无法正常通信,以上行为可能变得非常危险了——可能此时微服务本身其实是健康的,仅是因为EurekaClient到EurekaServer的网络出现了延迟,因此不应该立即注销这个微务。 Eureka通过“自我保护模式”来解决这个问题
+    - **当 Eureka Server节点在短时间内丢失过多客户端时(可能发生了网络分区故障),那么这个节点就会进入自我保护模式。**
+    -  它的设计哲学就是宁可保留暂时不健康的微服务实例，也不盲目注销可能健康的服务实例。
+
+- 禁止自我保护（一掉线就注销）的方法：
+
+    - 在`cloud-eureka-server-7001`中修改主配置文件：
+
+        ```yaml
+        # 配置eureka
+        eureka:
+          ...
+          server:
+            # 关闭自我保护机制
+            enable-self-preservation: false
+            # 修改心跳断连时间为2s
+            eviction-interval-timer-in-ms: 2000
+        ```
+
+    - 修改`cloud-provider-payment8001`的主配置文件：
+
+        ```yaml
+        # 配置Eureka
+        eureka:
+        	...
+          instance:
+            instance-id: payment8001
+            # 访问路径可以显示ip地址
+            prefer-ip-address: true
+            # Eureka客户端像服务端发送心跳的时间间隔，单位为秒（默认是30秒）
+            lease-renewal-interval-in-seconds: 1
+            # Eureka服务段在收到最后一次心跳后等待的时间上线，超出次上线后将删除服务（默认是90秒）
+            lease-expiration-duration-in-seconds: 2
+        ```
+
+    - ![QsKj9H](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/QsKj9H.png)
+
+### 8.6 支付模块cloud-provider-payment的集群部署
 
 - 新建`cloud-provider-payment8002`
 
@@ -422,6 +515,73 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 - ![WCOLo9](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/WCOLo9.png)
 
 > 实际开发中不应该复制多个模块，可以打包成jar，修改配置文件运行多个jar实例（多实例启动）
+
+### 8.7 ZooKeeper代替Eureka充当注册中心
+
+- [Eureka 2.0 开源工作宣告停止，继续使用风险自负 - OSCHINA](https://www.oschina.net/news/97521/eureka-2-0-discontinued)
+
+- ZooKeeper是Hadoop的正式子项目，它是一个针对大型分布式系统的可靠协调系统，提供的功能包括：配置维护、名字服务、分布式同步、组服务等。ZooKeeper的目标就是封装好复杂易出错的关键服务，将简单易用的接口和性能高效、功能稳定的系统提供给用户。**ZooKeeper也可以实现注册中心的功能**
+
+- 新增生产者模块`cloud-provider-payment8004`：
+
+    - Docker部署ZooKeeper`docker run --name zookeeper -p 2181:2181 -d zookeeper`
+
+        - [使用 Docker 一步搞定 ZooKeeper 集群的搭建 - 后台开发 - SegmentFault 思否](https://segmentfault.com/a/1190000006907443)
+        - [Docker安装Zookeeper并进行操作_大数据_Radom&7-CSDN博客](https://blog.csdn.net/qq_26641781/article/details/80886831)
+        - [IDEA 中安装和使用 zookeeper插件 - 直到世界的尽头-的个人空间 - OSCHINA](https://my.oschina.net/leitingweb/blog/617588)
+
+    - 1、ZooKeeper主配置文件如下：
+
+        ```yaml
+        # 微服务端口号
+        server:
+          port: 8004
+        
+        spring:
+          application:
+            # 服务别名---注册zookeeper到注册中心的名称
+            name: cloud-provider-payment
+          cloud:
+            zookeeper:
+              # 默认localhost:2181
+              connect-string: 192.168.99.114:2181
+        ```
+
+    - 2、修改主启动类：
+
+        ```java
+        @SpringBootApplication
+        @EnableDiscoveryClient  // 该注解用于向consul或者zookeeper作为服务中心时注册服务
+        public class PaymentMain8004 {
+            public static void main(String[] args) {
+                SpringApplication.run(PaymentMain8004.class, args);
+            }
+        }
+        
+        ```
+
+    - 3、编写简单的Controller类
+
+        ```java
+        @RestController
+        @Slf4j
+        public class PaymentController {
+        
+            @Value("${server.port}") // 可以读取配置文件中${server.port}的值， 目的是在结果页面显示本次查询由哪一台服务器提供
+            private String serverPort;
+        
+            @RequestMapping(value = "/payment/zk")
+            public String paymentzk(){
+                return "Spring Cloud with ZooKeeper:" + serverPort + "\t" + UUID.randomUUID().toString();
+            }
+        }
+        ```
+
+    - 
+
+
+
+
 
 
 
