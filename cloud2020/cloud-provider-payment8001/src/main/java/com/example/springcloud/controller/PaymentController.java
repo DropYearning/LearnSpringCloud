@@ -5,9 +5,12 @@ import com.example.springcloud.entities.Payment;
 import com.example.springcloud.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 @RestController // Spring4之后新加入的注解，原来返回json.相当于@ResponseBody和@Controller配合。
 @Slf4j // 如果不想每次都写private final Logger logger = LoggerFactory.getLogger(当前类名.class); 可以用注解@Slf4j;
@@ -19,6 +22,9 @@ public class PaymentController {
 
     @Value("${server.port}") // 可以读取配置文件中${server.port}的值， 目的是在结果页面显示本次查询由哪一台服务器提供
     private String serverPort;
+
+    @Resource
+    private DiscoveryClient discoveryClient;
 
     @PostMapping(value = "/payment/create") // 写操作Post
     //@RequestBody 注解用于将Controller的方法参数，根据HTTP Request Header的content-Type的内容,通过适当的HttpMessageConverter转换为JAVA类
@@ -41,5 +47,23 @@ public class PaymentController {
         }else {
             return new CommonResult(444, "serverPort:" + serverPort + "没有对应记录, 查询id:" + id, null);
         }
+    }
+
+    @GetMapping(value = "/payment/discovery")
+    public Object discovery(){
+
+        // 获得Eureka中注册所有服务名
+        List<String> services = discoveryClient.getServices();
+        for (String service : services) {
+            log.info("*****service:" + service);
+        }
+
+        // 获得Eureka中注册的CLOUD-PAYMENT-SERVICE服务的所有实例
+        List<ServiceInstance> instances = discoveryClient.getInstances("CLOUD-PAYMENT-SERVICE");
+        for (ServiceInstance instance : instances) {
+            log.info(instance.getServiceId() + "\t" + instance.getHost() + "\t" + instance.getPort() + "\t" + instance.getUri());
+        }
+
+        return this.discoveryClient;
     }
 }
