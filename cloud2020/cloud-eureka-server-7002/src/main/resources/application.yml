@@ -1,0 +1,19 @@
+# 微服务端口
+server:
+  port: 7002
+
+# 配置eureka
+eureka:
+  instance:
+    # 主机域名
+    hostname: eureka7002.com
+  client:
+    # 设置服务中心不将自己注册进去
+    register-with-eureka: false
+    # 服务中心不需要检索
+    fetch-registry: false
+    service-url:
+      # 单机版
+      # defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+      # 集群版：在使用Eureka集群时此处写别的所有注册中心的服务地址
+      defaultZone: http://eureka7001.com:7001/eureka/
