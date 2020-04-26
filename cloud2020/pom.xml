@@ -18,7 +18,11 @@
     <module>cloud-eureka-server-7001</module>
       <module>cloud-eureka-server-7002</module>
       <module>cloud-provider-payment8002</module>
-      <module>cloud-provider-payment8004</module>
+      <module>cloud-provider-zkpayment8004</module>
+      <module>cloud-consumer-zkorder801</module>
+      <module>cloud-provider-consul-payment8006</module>
+    <module>cloud-consumer-consul-order801</module>
+    <module>cldou-consumer-feign-order801</module>
   </modules>
 
 
