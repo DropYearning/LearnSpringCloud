@@ -28,10 +28,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
 
 
-
-## 附录：订单-支付系统微服务的实现
-
-### 1  创建父工程
+## 2  创建父工程
 
 - 开启idea注解支持（主要是为了兼容Lombok）：![MbAIsJ](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/MbAIsJ.png)
 
@@ -148,7 +145,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
     
 
-### 2 cloud-provider-payment8001微服务提供者支付模块
+## 3 cloud-provider-payment8001微服务提供者支付模块
 
 - 1、建module
 
@@ -176,7 +173,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
         - [@RequestBody的使用_Java_JustryDeng-CSDN博客](https://blog.csdn.net/justry_deng/article/details/80972817)
     - 6、测试业务类
 
-### 3 cloud-consumer-order801微服务消费者订单模块（RestTemplate）
+## 4 cloud-consumer-order801微服务消费者订单模块（RestTemplate）
 
 - 按照以前的步骤编写微服务
 
@@ -204,7 +201,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
     > 理论上所有写在新建配置类中的配置项都可以直接写在主启动类中。
 
-### 4 工程重构（抽取公共类）
+## 5 工程重构（抽取公共类）
 
 - <img src="https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/Y3BASA.png" alt="Y3BASA" style="zoom:67%;" />
 - 两个微服务模块中都有重复的entitis实体类，可以将其抽出：
@@ -216,7 +213,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
     - 6、测试原有的模块是否正常
     - 好处：以后如果需要修改公共部分只需要修改一处
 
-### 5  注册中心与Eureka
+## 6  注册中心与Eureka
 
 - **使用注册中心必要性**：之前的订单-支付系统是使用restTemplate相互调用的。
     - 在云计算之前，服务部署在物理机器上，IP 地址不变，因此即使没有服务发现，通过 **硬编码** 服务的地址，也能满足需求。
@@ -225,7 +222,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 - 服务中心又称注册中心，管理各种服务功能包括**服务的注册、发现、熔断、负载、降级**等，比如dubbo admin后台的各种功能。
 - [springcloud(二)：注册中心Eureka - 纯洁的微笑 - 博客园](https://www.cnblogs.com/ityouknow/p/6854805.html)
 
-#### 5.1 Eureka基础知识
+### 6.1 Eureka基础知识
 
 - Spring Cloud 封装了 Netflix 公司开发的 Eureka 模块来实现服务注册和发现。**Eureka 采用了 C-S 的设计架构。**Eureka Server 作为服务注册功能的服务器，它是服务注册中心。而系统中的其他微服务，使用 Eureka 的客户端连接到 Eureka Server，并维持心跳连接。这样系统的维护人员就可以通过 Eureka Server 来监控系统中各个微服务是否正常运行。Spring Cloud 的一些其他模块（比如Zuul）就可以通过 Eureka Server 来发现系统中的其他微服务，并执行相关的逻辑。
 - **Eureka由两个组件组成：Eureka服务器和Eureka客户端**。Eureka服务器用作服务注册服务器。Eureka客户端是一个java客户端，用来简化与服务器的交互、作为轮询负载均衡器，并提供服务的故障切换支持。Netflix在其生产环境中使用的是另外的客户端，它提供基于流量、资源利用率以及出错状态的加权负载均衡。
@@ -234,7 +231,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
     - **Service Provider**：服务提供方，将自身服务注册到Eureka，从而使服务消费方能够找到
     - **Service Consumer**：服务消费方，从Eureka获取注册服务列表，从而能够消费服务
 
-#### 5.2 Eureka单机部署
+### 6.2 Eureka单机部署
 
 - （一）新建模块`cloud-eureka-server-7001`
 
@@ -309,7 +306,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
     - 与上面过程类似
     - ![538q1Y](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/538q1Y.png)
 
-#### 5.3 Eureka集群部署
+### 6.3 Eureka集群部署
 
 [微服务注册中心Eureka架构深入解读 - InfoQ](https://www.infoq.cn/article/jlDJQ*3wtN2PcqTDyokh)
 
@@ -400,7 +397,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
 > 服务名不要有下划线_
 
-#### 5.4 服务发现Discovery
+### 6.4 服务发现Discovery
 
 - 对于注册进Eureka里面的微服务，可以通过服务发现来获得该服务的信息
 
@@ -434,7 +431,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
     ![dTYjZF](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/dTYjZF.png)
 
-#### 5.5 Eureka的自我保护机制
+### 6.5 Eureka的自我保护机制
 
 - ![VQAbXN](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/VQAbXN.png)
 
@@ -482,7 +479,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
     - ![QsKj9H](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/QsKj9H.png)
 
-### 6 支付模块cloud-provider-payment的集群部署
+## 7 支付模块cloud-provider-payment的集群部署
 
 - 新建`cloud-provider-payment8002`
 
@@ -518,7 +515,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
 > 实际开发中不应该复制多个模块，可以打包成jar，修改配置文件运行多个jar实例（多实例启动）
 
-### 7 ZooKeeper代替Eureka充当注册中心
+## 8 ZooKeeper代替Eureka充当注册中心
 
 - [Eureka 2.0 开源工作宣告停止，继续使用风险自负 - OSCHINA](https://www.oschina.net/news/97521/eureka-2-0-discontinued)
 
@@ -669,7 +666,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
 
 
-### 8 Consul实现注册中心
+## 9 Consul实现注册中心
 
 [Spring Cloud Consul 中文文档 参考手册 中文版](https://www.springcloud.cc/spring-cloud-consul.html)
 
@@ -681,7 +678,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
     - **多数据中心**: Consul支持开箱即用的多数据中心.这意味着用户不需要担心需要建立额外的抽象层让业务扩展到多个区域.
 - 安装`brew install consul`
 
-### 8.1 服务提供者注册进consul
+### 9.1 服务提供者注册进consul
 
 - 新建新模块`cloud-provider-consul-payment-8006`
 
@@ -736,7 +733,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
         ![HczrLI](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/HczrLI.png)
 
-### 8.2 服务消费者注册进consul
+### 9.2 服务消费者注册进consul
 
 - 新建`cloud-consumer-consul-order801`模块
     - 修改POM、编写配置文件、主启动类，ApplicationContextConfig声明RestTemplate为@Bean
@@ -744,7 +741,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 - ![46z0LU](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/46z0LU.png)
 - ![fwycEk](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/fwycEk.png)
 
-### 9 三种注册中心的异同点
+## 10 三种注册中心的异同点
 
 | 组件名    | 语言 | CAP    | 服务健康检查 | 对外暴露接口 | 集成SpringCloud |
 | --------- | ---- | ------ | ------------ | ------------ | --------------- |
@@ -763,7 +760,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
     - ![XB6yxF](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/XB6yxF.png)
     - ZK/Consul在心跳失效后会立即注销服务
 
-### 10  分布式与CAP理论
+## 11  分布式与CAP理论
 
 - 在[理论计算机科学](https://zh.wikipedia.org/wiki/%E7%90%86%E8%AB%96%E8%A8%88%E7%AE%97%E6%A9%9F%E7%A7%91%E5%AD%B8)中，**CAP定理**（CAP theorem），又被称作**布鲁尔定理**（Brewer's theorem），它指出对于一个[分布式计算系统](https://zh.wikipedia.org/wiki/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97)来说，不可能同时满足以下三点：
     - <img src="https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/Al5YkZ.jpg" alt="Al5YkZ" style="zoom:50%;" />
@@ -780,9 +777,9 @@ SpringBoot 2.x + SpringCloud **Hoxton**
     - **AP wihtout C**：要高可用并允许分区，则需放弃一致性。一旦分区发生，节点之间可能会失去联系，为了高可用，每个节点只能用本地数据提供服务，而这样会导致全局数据的不一致性。现在众多的NoSQL都属于此类。
         - <img src="https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/6on7li.jpg" alt="6on7li" style="zoom:67%;" />
 
-### 11  使用Ribbon实现负载均衡
+## 12  使用Ribbon实现负载均衡
 
-#### 11.1 负载均衡介绍
+### 12.1 负载均衡介绍
 
 - **负载均衡是什么？**——简单的说负载均衡就是将用户请求平摊分配到多个服务上，从而达到系统的高可用。常见的负载均衡软件有Nginx, LVS等
 - **Ribbon本地负载均衡客户端 VS Nginx服务端负载均衡**
@@ -806,7 +803,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
 - **引入`spring-cloud-starter-netflix-eureka-client`会自动引入Ribbon**![bBFENX](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/bBFENX.png)
 
-#### 11.2 使用其他Ribbon自带的负载均衡算法
+### 12.2 使用其他Ribbon自带的负载均衡算法
 
 - **IRule接口**,Riboon使用该接口,根据特定算法从所有服务中,选择一个服务。Rule接口有7个实现类,每个实现类代表一个负载均衡算法
 - Ribbon默认的负载均衡算法是轮询`RoundRobinRule`。轮询算法RoundRobinRule：`rest接口第几次请求数 % 服务器集群总数量 = 实际调用服务器位置下标`。每次服务重启动后rest接口计数从1开始
@@ -850,13 +847,13 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
     - 3、启动后访问`http://127.0.0.1:801/consumer/payment/getForEntity/1`测试，负载均衡算法已经变为随机。
 
-#### 11.3自定义Ribbon的负载均衡算法
+### 12.3自定义Ribbon的负载均衡算法
 
 - [手写轮询算法](https://www.bilibili.com/video/BV18E411x7eT?p=42)
 
-### 12 OpenFeign服务调用
+## 13 OpenFeign服务调用
 
-#### 12.1  Feign介绍
+### 13.1  Feign介绍
 
 [Ribbon、Feign和OpenFeign的区别_Java_紫眸的博客-CSDN博客](https://blog.csdn.net/zimou5581/article/details/89949852)
 
@@ -867,7 +864,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 - 在 Feign的实现下,我们只需创建一个接口并使用注解的方式来配置它（以前是Dao接口上面标注 Mapper注解， 现在是一个微服务接口上面标注一个Feign注解即可) ,即可完成对服务提供方的接口绑定,简化了操作
 - 总结：**在客户端（消费者）中定义一个和服务器端（生产者）一样的服务接口，并使用Feign的注解标注。即可远程调用生产者的提供的服务**。**不在使用RestTemplate**
 
-#### 12.2 使用OpenFeign改造消费者模块
+### 13.2 使用OpenFeign改造消费者模块
 
 - 1、新建一个消费者`cldou-consumer-feign-order801`模块
 
@@ -918,7 +915,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
     - 启动测试
 
-#### 12.3 OpenFeign超时机制
+### 13.3 OpenFeign超时机制
 
 - OpenFeign底层使用了Ribbon做服务调用（负载均衡），客户端默认只会等待生产者服务1秒钟，如果超时则返回报错
 - 可以在配置文件中修改，对Ribbon的超时时间作出更改
@@ -997,7 +994,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
     再次测试即正常等待3s后显示端口：![foC8eV](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/foC8eV.png)
 
-#### 12.4 OpenFeign的日志记录功能
+### 13.4 OpenFeign的日志记录功能
 
 [OpenFeign 日志打印功能_cloud_TheNoOne--的博客-CSDN博客](https://blog.csdn.net/qq_41211642/article/details/104851537)
 
@@ -1050,9 +1047,9 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
         
 
-### 13 *Hystrix 服务降级和熔断
+## 14 *Hystrix 服务降级和熔断
 
-#### 13.1 熔断器的介绍
+### 14.1 熔断器的介绍
 
 - [【原创】谈谈服务雪崩、降级与熔断 - 孤独烟 - 博客园](https://www.cnblogs.com/rjzheng/p/10340176.html)
 
@@ -1072,7 +1069,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
 
 
-#### 13.2 Hystirx的重要概念
+### 14.2 Hystirx的重要概念
 
 - **服务降级(fallback)**：比如当某个服务繁忙,不能让客户端的请求一直等待,应该立刻返回给客户端一个备选方案。
 
@@ -1093,7 +1090,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
     > Hystirx是作用在客户端（消费者）一侧的熔断器。
 
-#### 13.3 新建生产者（服务端）模块支持Hystirx
+### 14.3 新建生产者（服务端）模块支持Hystirx
 
 - 1、新建`cloud-provider-hystrix-payment8001`模块，引入Hystrix，成为支持断路器的生产者。
 
@@ -1170,13 +1167,13 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
     - 访问http://127.0.0.1:8001/payment/hystirx/timeout/1， 等到3秒后返回结果![gVEBuT](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/gVEBuT.png)
 
-#### 13.4  Jmeter高并发测试
+### 14.4  Jmeter高并发测试
 
 - ![Jb8s2i](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/Jb8s2i.png)
 - ![hvbVKb](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/hvbVKb.png)
 - 当并发访问线程数变多时，即便是访问http://127.0.0.1:8001/payment/hystirx/ok/1， 也会转圈圈
 
-#### 13.5 新建消费者（客户端）模块
+### 14.5 新建消费者（客户端）模块
 
 > Hystirx一般作用客户端（消费者）上
 
@@ -1231,7 +1228,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
     - 对方服务(8001)宕机了,调用者(80)不能一直卡死等待,必须有**服务降级**
     - 对方服务(8001)OK, 调用者(80)自己出故障或有自我要求(自己的等待时间小于服务提供者处理所需的时间)
 
-#### 13.6 Hystrix在服务端8001（生产者）配置服务降级（fallback）
+### 14.6 Hystrix在服务端8001（生产者）配置服务降级（fallback）
 
 - 8001服务端设置自身调用超时时间的峰值，峰值内可以正常运行，超过了需要有兜底的方法处理，作服务降级fallback
 
@@ -1283,7 +1280,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
 - （三）若将线程沉睡时间改为13s，约定服务响应时间为5s，则5s后立即触发Hystrix的熔断，提示系统繁忙
 
-#### 13.7  Hystrix在客户端端801（消费者）配置服务降级（fallback）
+### 14.7  Hystrix在客户端端801（消费者）配置服务降级（fallback）
 
 > Hytrix服务降级既可以放在客户端，也可以放在服务端。**但是一般做服务降级都放在客户端**
 
@@ -1319,7 +1316,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
         ```
 
     - 4、效果：由于此时设置服务端线程等待3s后返回结果，服务端自检超时的标注是5s，因此服务端Hystrix不报错，而客户端要求的响应时间是1.5s, 1.5 < 3， 所以客户端Hystirx报错
-        
+      
         - ![ee1vIv](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/ee1vIv.png)
 
 > **Hystrix 熔断器默认超时时间是 1 秒钟**，我们需要在配置中修改它的超时时间配置，同时也要设置 ribbon 的超时时间。
@@ -1347,7 +1344,7 @@ ribbon:
 
 
 
-#### 13.8 Hystrix设置全局的fallback方法
+### 14.8 Hystrix设置全局的fallback方法
 
 - 目前我们需要为每一个需要降级的方法编写一个fallback方法，这样当需要降级的方法数量一多之后会造成方法的数量爆炸。如何设置全局的fallback方法？
 
@@ -1365,10 +1362,10 @@ ribbon:
     - 2、在需要服务降级的业务类上标注`@DefaultProperties(defaultFallback = "orderGlobalFallbackMethod")`
     - 3、去除原来方法上@HystrixCommand中标注的具体fallback方法
     - 4、测试效果：paymentInfo_OK方法中增加除0异常，只标注@HystrixCommand，访问时默认调用全局fallback方法
-        
+      
         - ![nCuxi8](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/nCuxi8.png)
 
-#### 13.9 在@FeignClient的接口上通配fallback
+### 14.9 在@FeignClient的接口上通配fallback
 
 - 重新建立一个类`PaymentFallbackService`实现`PaymentHystrixService`接口，为这个接口中的方法指定fallback
 
@@ -1409,7 +1406,7 @@ ribbon:
 
 > 接口实现类实现fallback是一种比在13.7中Controller层编写fallback方法并使用@HystrixCommand调用更加优雅，更加方便的做法。两者的效果其实差不多。
 
-#### 13.10 服务熔断理论
+### 14.10 服务熔断理论
 
 - **服务降级（fallback）**：	
     - 当下游的服务因为某种原因**响应过慢**，*下游服务主动停掉一些不太重要的业务*，释放出服务器资源，增加响应速度！
@@ -1432,7 +1429,7 @@ ribbon:
 
 > 服务熔断应该部署在服务器（生产者）端。
 
-#### 13.11 Hystrix实现服务熔断例子
+### 14.11 Hystrix实现服务熔断例子
 
 - （一）修改`cloud-provider-hystrix-payment8001`
 
@@ -1481,17 +1478,17 @@ ribbon:
 
 > 断路器一旦打开，将不会再调用主业务逻辑，而是调用服务降级方法fallback。		
 
-#### 13.12 Hystrix熔断参数表
+### 14.12 Hystrix熔断参数表
 
 - [Hystrix 配置参数全解析 - 枕边书 - 博客园](https://www.cnblogs.com/zhenbianshu/p/9630167.html)
 
 - [Hystrix使用说明，配置参数说明_Java_tongtong_use的博客-CSDN博客](https://blog.csdn.net/tongtong_use/article/details/78611225)
 
-#### 13.13 Hystrix熔断流程图
+### 14.13 Hystrix熔断流程图
 
 - ![i5osHa](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/i5osHa.jpg)
 
-#### 13.14 Hystrix Dashboard实现熔断/降级监控
+### 14.14 Hystrix Dashboard实现熔断/降级监控
 
 - Hystrix-dashboard是一款针对Hystrix进行实时监控的工具，通过Hystrix Dashboard我们可以在直观地看到各Hystrix Command的请求响应时间, 请求成功率等数据。
 
