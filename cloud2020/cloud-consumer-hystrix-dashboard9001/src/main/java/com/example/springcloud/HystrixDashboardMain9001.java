@@ -14,13 +14,5 @@ public class HystrixDashboardMain9001 {
         SpringApplication.run(HystrixDashboardMain9001.class, args);
     }
 
-    //@Bean
-    //public ServletRegistrationBean getServlet() {
-    //    HystrixMetricsStreamServlet streamServlet = new HystrixMetricsStreamServlet();
-    //    ServletRegistrationBean registrationBean = new ServletRegistrationBean(streamServlet);
-    //    registrationBean.setLoadOnStartup(1);
-    //    registrationBean.addUrlMappings("/hystrix.stream");
-    //    registrationBean.setName("HystrixMetricsStreamServlet");
-    //    return registrationBean;
-    //}
+
 }
