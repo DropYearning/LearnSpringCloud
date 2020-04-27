@@ -4,7 +4,7 @@ server:
 # 配置微服务名称
 spring:
   application:
-    name: cloud-order-service
+    name: cloud-order-com.example.springcloud.service
 
 # 配置Eureka
 eureka:
