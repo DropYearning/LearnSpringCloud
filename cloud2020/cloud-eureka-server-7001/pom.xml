@@ -29,7 +29,7 @@
         <!--一般为通用配置-->
         <dependency>
             <groupId>org.example.springcloud</groupId>
-            <artifactId>cloud-api-common</artifactId>
+            <artifactId>cloud-api-commons</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
