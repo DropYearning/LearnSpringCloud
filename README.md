@@ -1054,7 +1054,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
 #### 13.1 熔断器的介绍
 
-[【原创】谈谈服务雪崩、降级与熔断 - 孤独烟 - 博客园](https://www.cnblogs.com/rjzheng/p/10340176.html)
+- [【原创】谈谈服务雪崩、降级与熔断 - 孤独烟 - 博客园](https://www.cnblogs.com/rjzheng/p/10340176.html)
 
 - 熔断器的必要性；
     - 多个微服务之间调用的时候,假设微服务A调用微服务B和微服名C微服务B和微服务C又调用其它的微服务,这就是所谓的"扇出"。如果扇出的链路上某个微服务的调用响应时间过长或者不用,对微服务A的调用就会占用越来越多系统资源,进而引起系统崩渍,所谓的“**雪崩效应**”
@@ -1069,6 +1069,8 @@ SpringBoot 2.x + SpringCloud **Hoxton**
 
 - Hystrix 供分布式系统使用，提供**延迟**和**容错**功能，隔离远程系统、访问和第三方程序库的访问点，防止级联失败，保证复杂的分布系统在面临不可避免的失败时，仍能有其弹性。
 - 在一个分布式系统里，许多依赖不可避免的会调用失败，比如超时、异常等，如何能够保证在一个依赖出问题的情况下，不会导致整体服务失败，这个就是Hystrix需要做的事情。**Hystrix提供了熔断、隔离、Fallback、cache、监控等功能，能够在一个、或多个依赖同时出现问题时保证系统依然可用。**
+
+
 
 #### 13.2 Hystirx的重要概念
 
@@ -1317,6 +1319,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
         ```
 
     - 4、效果：由于此时设置服务端线程等待3s后返回结果，服务端自检超时的标注是5s，因此服务端Hystrix不报错，而客户端要求的响应时间是1.5s, 1.5 < 3， 所以客户端Hystirx报错
+        
         - ![ee1vIv](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/ee1vIv.png)
 
 > **Hystrix 熔断器默认超时时间是 1 秒钟**，我们需要在配置中修改它的超时时间配置，同时也要设置 ribbon 的超时时间。
@@ -1362,6 +1365,7 @@ ribbon:
     - 2、在需要服务降级的业务类上标注`@DefaultProperties(defaultFallback = "orderGlobalFallbackMethod")`
     - 3、去除原来方法上@HystrixCommand中标注的具体fallback方法
     - 4、测试效果：paymentInfo_OK方法中增加除0异常，只标注@HystrixCommand，访问时默认调用全局fallback方法
+        
         - ![nCuxi8](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/nCuxi8.png)
 
 #### 13.9 在@FeignClient的接口上通配fallback
@@ -1484,6 +1488,59 @@ ribbon:
 - [Hystrix使用说明，配置参数说明_Java_tongtong_use的博客-CSDN博客](https://blog.csdn.net/tongtong_use/article/details/78611225)
 
 #### 13.13 Hystrix熔断流程图
+
+- ![i5osHa](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/i5osHa.jpg)
+
+#### 13.14 Hystrix Dashboard实现熔断/降级监控
+
+- Hystrix-dashboard是一款针对Hystrix进行实时监控的工具，通过Hystrix Dashboard我们可以在直观地看到各Hystrix Command的请求响应时间, 请求成功率等数据。
+
+- （一）新建模块`cloud-consumer-hystrix-dashboard9001`，
+    - 1、引入`spring-cloud-starter-netflix-hystrix-dashboard`的依赖
+    - 2、编写主配置文件设置端口，编写主启动类
+
+- （二）对要被监控的微服务模块进行设置
+
+    - 1、所有被监控的微服务模块都需要引入`spring-boot-starter-actuator`的依赖
+
+    - 2、以8001服务端模块为例，在主启动类上配置HystrixMetricsStreamServlet
+
+        ```java
+            @Bean
+            public ServletRegistrationBean getServlet() {
+                HystrixMetricsStreamServlet streamServlet = new HystrixMetricsStreamServlet();
+                ServletRegistrationBean registrationBean = new ServletRegistrationBean(streamServlet);
+                registrationBean.setLoadOnStartup(1);
+                registrationBean.addUrlMappings("/hystrix.stream");
+                registrationBean.setName("HystrixMetricsStreamServlet");
+                return registrationBean;
+            }
+        ```
+
+        或者在8001的配置文件中加入：
+
+        ```yaml
+        management:
+          endpoints:
+            web:
+              exposure:
+                include: hystrix.stream
+        ```
+
+- （三）启动各个模块，登陆http://127.0.0.1:9001/hystrix
+
+    - ![ucXbF3](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/ucXbF3.png)
+
+    - 访问http://127.0.0.1:8001/payment/circuit/-1 页面不断发送正确或者错误的请求发起服务调用, 短期器状态会发生相应改变
+
+        ![Wa67K4](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/Wa67K4.png)
+
+- （四）仪表盘说明
+
+    - ![tq049p](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/tq049p.jpg)
+    - ![cJJF1V](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/cJJF1V.jpg)
+
+> Hystrix Dashboard启用仪表盘比较麻烦，需要独立为仪表盘编写并运行一个模块。相比之下Alibaba Nacos在监控方面使用起来更加简单。
 
 
 
