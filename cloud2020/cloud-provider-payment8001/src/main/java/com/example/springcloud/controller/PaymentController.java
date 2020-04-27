@@ -56,7 +56,7 @@ public class PaymentController {
         // 获得Eureka中注册所有服务名
         List<String> services = discoveryClient.getServices();
         for (String service : services) {
-            log.info("*****service:" + service);
+            log.info("*****com.example.springcloud.service:" + service);
         }
 
         // 获得Eureka中注册的CLOUD-PAYMENT-SERVICE服务的所有实例

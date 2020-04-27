@@ -4,7 +4,7 @@ server:
 # 微服务名称
 spring:
   application:
-    name: cloud-payment-service
+    name: cloud-payment-com.example.springcloud.service
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource  #当前数据源操作类型 com.mysql.jdbc.Driver
     driver-class-name: com.mysql.cj.jdbc.Driver
