@@ -1759,12 +1759,9 @@ ribbon:
               uri: lb://cloud-payment-service
               predicates:
                 - Path=/payment/lb/**
-    
     ```
   
   - 2、运行生产者8001/8002，Eureka注册中心7001，网关9527，启动后访问 http://127.0.0.1:9527/payment/lb , 发现显示的端口号在8001与8002之间来回切换，确实实现了轮询的负载均衡
-  
-  
 
 ### 15.5 Gateway中常用的Predicate
 
@@ -1835,15 +1832,11 @@ ribbon:
     Map<String, String> uriVariables = variables.getUriVariables();
     String segment = uriVariables.get("segment");
     ```
-    
-    
 
 - （九）Query：Query Route Predicate Factory可以通过一个或两个参数来匹配路由，一个是查询的name，一个是查询的正则value
   
   - `Query=baz`
   - 路由会匹配所有包含`baz`查询参数的请求
-  
-  
 
 ### 15.6 Gateway Filter
 
@@ -1891,15 +1884,394 @@ ribbon:
 
 - 访问：http://127.0.0.1:9527/payment/lb?username=zhangsan 正常，访问http://127.0.0.1:9527/payment/lb 错误
 
-
-
 ## 16 SpringCloud Config分布式配置中心
 
+- [Spring Cloud Config 中文文档 参考手册 中文版](https://www.springcloud.cc/spring-cloud-config.html)
 
+- [SpringCloud-微服务配置统一管理SpringCloud Config(七) - lfalex - 博客园](https://www.cnblogs.com/lfalex0831/p/9206605.html)
 
+- 背景：对于应用，配制文件通常是放在项目中管理的，它可能有spring、mybatis、log等等各种各样的配置文件和属性文件，另外你还可能有开发环境、测试环境、生产环境等，这样的话就得一式三份，若是传统应用还好说，如果是微服务呢，这样**不光配置文件有可能冗余而且量大，繁重复杂，不好维护**，这样的话就需要一个配置文件的统一管理了。
+  
+  - 例如，如果有四个微服务都需要有数据库交互，如果数据库配置要修改需要修改四次
 
+- Spring Cloud Config为微服务架构中的微服务提供中化的**外部（Git/Github）配置支持**,配置服务器为个不同微服务应用的所有环境提供了一个中心化的外部配置，它的功能有：
+  
+  - ![mWINfL](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/mWINfL.png)
+  
+  - **集中管理配置文件**
+  
+  - **不同环境不同配置**，区分环境部署比如 dev, /test, /prod, /beta/, /release
+  
+  - 运行期间**动态调整配置**,不再需要在每个服务部署的机器上编写配置文件,服务会向配置中心统一拉取配置自己的信息
+  
+  - 当配置发生变动时,服务不需要重启即可感知到配置的变化并应用新的配置
+  
+  - 将配置信息以REST接口的形式暴露
 
+- Spring Cloud Config分为服务端和客户端两部分:
+  
+  - 服务端也称为分布式配置中心,它是—个独立的微服务应用,用来连接配置服务器并为客户端提供获取配置信息,加密/解密信息等访冋接口
+  
+  - 客户端则是通过指定的配置中心来管理应用资源,以及与业务相关的配置内容,并在启动的时候从配置中心获取和加载配置信息配置服务器。默认釆用git来存储配置信息,这样就有助于对环境配置进行版本管理,并且可通过git客户端工具来方便的管理和访问配置内容
 
+#### 16.1 SpringCloud Config服务端3344配置
+
+- （一）新建一个Github Repo：
+  
+  ![rWnEW0](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/rWnEW0.png)
+  
+  - 其中的配置文件名字必须为`/{label}/{application}-{profile}`
+  
+  - 其中/label是主配置文件中设置的Github分支名
+
+- （二）新建模块`cloud-config-center3344`：
+  
+  - 1、引入POM依赖：
+  
+  ```xml
+          <dependency>
+              <groupId>org.springframework.cloud</groupId>
+              <artifactId>spring-cloud-starter-bus-amqp</artifactId>
+          </dependency>
+          <dependency>
+              <groupId>org.springframework.cloud</groupId>
+              <artifactId>spring-cloud-config-server</artifactId>
+          </dependency>
+  ```
+  
+  - 2、编写主配置文件:
+    
+    ```yaml
+    server:
+      port: 3344
+    
+    spring:
+      application:
+        name: cloud-config-center
+      cloud:
+        config:
+          server:
+            git:
+              uri: https://github.com/DropYearning/springcloud-config.git # Github上仓库https url
+              search-paths:
+                - springcloud-config
+          label: master # 分支名字
+    
+    eureka:
+      client:
+        service-url:
+          defaultZone: http://localhost:7001/eureka
+    ```
+  
+  - 3、编写主启动类，加上`@EnableConfigServer`激活配置中心
+  
+  - 4、在Host文件中增加映射`127.0.0.1 config3344.com`
+  
+  - 5、访问 http://127.0.0.1:3344/master/config-dev.yml ：可以看到，Springcloud Config会自动从Github仓库上拉取配置文件
+    
+    ![IZ3INM](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/IZ3INM.png)
+
+### 16.2 配置文件访问路径
+
+- lable:分支名
+
+- application：服务名
+
+- profiles：环境名（dev/test/prod）
+
+- `http://127.0.0.1:3344/{label}/{application}-{profile}`访问label分支下的{application}-{profile}配置文件
+
+- `http://127.0.0.1:3344/{application}-{profile}`默认访问到的是master分支的配置文件
+
+- `http://127.0.0.1:3344/config/dev/master`：以JSON格式返回/master/config-dev的配置内容
+
+### 16.3 Config客户端3355配置
+
+- 1、新建`cloud-config-client3355` ， 引入client的POM依赖：
+  
+  ```xml
+  <dependency>
+              <groupId>org.springframework.cloud</groupId>
+              <artifactId>spring-cloud-starter-config</artifactId>
+          </dependency>
+  ```
+
+- 2、在Config的客户端编写配置文件`bootstrap.yml`
+  
+  - application.yml是用户级的资源配置项
+  
+  - **bootstrap是系统级的资源配置项，比application.yml优先级高， 比application.yml先加载**
+  
+  - Spring Cloud会创建一个Bootstrap Context作为Spring应用的 Application Context的父上下文。初始化的时候, **Bootstrap Context负责从外部源加载配置属性并解析配置**。这两个上下文共享一个从外部取的 Environment
+  
+  - Bootstrap属性有高优先级:默认情况下,它们不会被本地配置覆盖。 Bootstrap Context和 Application Context有着不同的约定,所以新增了一个 bootstrap.yml文件,保证 Bootstrap Context和 Application Context配置的分离
+    
+    ```yml
+    server:
+      port: 3355
+    
+    spring:
+      application:
+        name: config-client
+      cloud:
+        config:
+          label: master # 分支名称
+          name: config # 配置文件名称
+          profile: dev # 读取的后缀，上述三个综合，为master分支上的config-dev.yml的配置文件被读取，http://127.0.0.1:3344/master/config-dev.yml
+          uri: http://127.0.0.1:3344 #配置中心的地址
+    eureka:
+      client:
+        service-url:
+          defaultZone: http://localhost:7001/eureka
+    ```
+
+- 3、编写主启动类
+
+- 4、编写业务类读取配置文件内容（因为配置文件信息是以REST形式暴露的）
+  
+  ```java
+  @RestController
+  public class ConfigClientController {
+          @Value("${config.info}")
+          private String configInfo;
+  
+          @GetMapping("/configInfo")
+          public String getConfigInfo(){
+              return configInfo;
+          }
+  }
+  ```
+  
+          
+
+- 5、启动
+  
+  - ![rnHr2F](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/rnHr2F.png)
+  
+  - ![aMje8m](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/aMje8m.png)
+  
+  - 成功实现了3355访问3344通过GitHub获取配置文件信息
+
+> 注意，Config的客户端中使用的配置文件是优先级更高的bootstrap.yml
+
+### 16.4 客户端配置文件的动态刷新
+
+- 若此时修改Github中的config-dev的内容，刷新 http://127.0.0.1:3344/master/config-dev.yml 可以发现配置文件立即更新了，**但是访问 http://127.0.0.1:3355/configInfo 却发现配置文件并没有更新，只有重启3355后配置文件才更新了**
+
+- ![4u2hT5](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/4u2hT5.png)
+  
+  - 从启动的控制台输出也可以看到客户端仅仅在启动时从3344加载了一次配置文件
+
+- 如何实现客户端配置文件的动态刷新？
+  
+  - 1、3355引入actuator依赖
+  - 2、3355在配置文件中暴露监控端点
+    
+    ```yaml
+    # 暴露监控端点
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: "*"
+    ```
+  - 3、在业务类上标注`@RefreashScope`
+  - 4、向3355暴露的监控端口发送POST请求告知其更新配置：`curl -X POST "http://127.0.0.1:3355/actuator/refresh"`
+    - ![jgO2Vl](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/jgO2Vl.png)
+  - 5、3355在不重启的情况下也能更新配置了，避免了服务重启
+
+- 仍然存在的问题：
+  
+  - 加入有多个微服务客户端3355/3366/3377...就需要向每一个客户端都发送一次POST请求
+  
+  - 可否一次广播，一次通知处处生效？
+  
+  - 如何实现定向通知？
+  
+  - 可以借助**消息总线**实现
+
+## 17 SpringCloud Bus消息总线(RabbitMQ)
+
+- [Spring Cloud Bus 中文文档 参考手册 中文版](https://www.springcloud.cc/spring-cloud-bus.html)
+
+- SpringCloud Bus 通过轻量消息代理连接各个分布的节点。这会用在广播状态的变化（例如配置变化）或者其他的消息指令。Spring bus的一个核心思想是通过分布式的启动器对spring boot应用进行扩展，也可以用来建立一个多个应用之间的通信频道。
+
+- **SpringCloud Bus只支持RabbitMQ和Kafka两种消息代理**，相当于所有的客户端都订阅了相同的topic来实现配置的更新
+
+- ![n5nPiU](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/n5nPiU.jpg)
+
+- **消息总线**：在微服务架构的系统中,通常会使用轻量级的消息代理来构建一个共用的消息主题,并让系统中所有微服务实例都连接上来。由于该主题中产生的消息会被所有实例监听和消费,所以称它为**消息总线**。*在总线上的各个实例,都可以方便地广播一些需要让其他连接在该主题上的实例都知道的消息*。
+
+- 基本原理：ConfigClient实例都监听MQ中同一个topIc默认是 SpringCloud Bus。当一个服务刷新数据的时候它会把这个信息放入到 Topic中,这样其他监听同一个Topic的服务就能得到通知,然后去更新自身的配置
+
+- 实现配置通知的方式：
+  
+  - 方式一：通知其中一个微服务实例![iUo4y6](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/iUo4y6.jpg)
+    
+    - 利用消息总线触发一个客户端/bus/ refresh而刷新所有客户端的配置
+    
+    - 缺点：
+      
+      - 打破了微服务的职责单一性,因为微服务本身是业务模块,它本不应该承担配置刷新的职责。（万一实例挂了会影响通知的分发）
+      
+      - 破坏了微服务各节点的对等性。因为第一种有一个客户端需要额外的承担刷新职责而其他的客户端却只有业务职责。
+      
+      - 有一定的局限性。例如,微服务在迁移时,它的网络地址常常会发生变化,此时如果想要做到自动刷新,那就会增加更多的修改
+  
+  - 方式二：通知Config Servier![vCQjg9](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/vCQjg9.jpg)
+    
+    - 利用消息总线触发一个服务端 ConfigServer的/bus/refresh端点, 从而刷新所有客户端的配置
+    
+    - 从微服务的架构来说第二种方式更科学
+
+- 第二种方式的搭建步骤：
+  
+  - 1、[Mac OS安装RabbitMQ - 简书](https://www.jianshu.com/p/5eb62a6d249d)
+  
+  - 2、以3355为模版再增加一个3366模块，内容一致
+  
+  - 3、3344、3355和3366都引入SpringCloud Bus的依赖`spring-cloud-starter-bus-amqp`
+  
+  - 4、修改3344的主配置文件增加消息总线支持：
+    
+    ```yml
+    server:
+      port: 3344
+    
+    spring:
+      application:
+        name: cloud-config-center
+      cloud:
+        config:
+          server:
+            git:
+              uri: https://github.com/DropYearning/springcloud-config.git # Github上仓库https url
+              search-paths:
+                - springcloud-config
+          label: master # 分支名字
+      #rabbitmq相关配置，15672是web管理端口，5672是mq访问端口
+      rabbitmq:
+        port: 5672
+        host: localhost
+        username: guest
+        password: guest
+    
+    eureka:
+      client:
+        service-url:
+          defaultZone: http://localhost:7001/eureka
+          
+    # RabbitMQ, 暴露bus刷新配置的端点
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: "bus-refresh"
+    ```
+  
+  - 5、修改3355和3366的主配置文件增加消息总线支持：
+    
+    ```yml
+    server:
+      port: 3366
+    
+    spring:
+      application:
+        name: cloud-config-client
+      cloud:
+        config:
+          label: master # 分支名称
+          name: config # 配置文件名称
+          profile: dev # 读取的后缀，上述三个综合，为master分支上的config-dev.yml的配置文件被读取，http://127.0.0.1:3344/master/config-dev.yml
+          uri: http://127.0.0.1:3344 #配置中心的地址
+      #rabbitmq相关配置，15672是web管理端口，5672是mq访问端口
+      rabbitmq:
+        port: 5672
+        host: localhost
+        username: guest
+        password: guest
+    
+    eureka:
+      client:
+        service-url:
+          defaultZone: http://localhost:7001/eureka
+    
+    # 暴露监控端点
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: "*"
+    ```
+  
+  - 6、启动7001,3344, 3355, 3366测试
+    
+    - 修改dev-config中的version为6
+    
+    - 向3344发送POST请求`curl -X POST "http://127.0.0.1:3344/actuator/bus-refresh"`
+    
+    - 3355和3366都更新到了最新版本
+    
+    - ![RZKrvJ](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/RZKrvJ.png)
+
+- 配置定向更新配置：
+  
+  - 不想通知所有的微服务客户端，例如只想通知3355而不通知3366
+  
+  - 定向请求路径`http://127.0.0.1:3344/actuator/bus-refresh/{des}`
+  
+  - 其中des表示指定的需要变更的微服务实例，可以在Eureka中查看des的写法：![gIYc7A](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/gIYc7A.png)
+  
+  - 例如可以发送`curl -X POST "http://127.0.0.1:3344/actuator/bus-refresh/cloud-config-client:3355"`，实现仅通知3355更新配置文件
+
+## 18 SpringCloud Stream消息驱动
+
+### 18.1 SpringCloud Stream的概念
+
+> SpringCloud Stream屏蔽了底层消息中间件的实现细节，希望以统一的一套 API 来进行消息的发送/消费，底层消息中间件的实现细节由各消息中间件的 Binder 完成。可以将其看作消息队列中的Slf4j，类似于日志门面，SCS起着消息队列门面的作用。
+
+- [Spring Cloud stream - Spring Cloud中国社区](http://docs.springcloud.cn/user-guide/stream/)
+
+- **Spring Messaging **模块是 Spring Framework 中的一个模块，其作用就是统一消息的编程模型。
+
+- Spring Integration 提供了 Spring 编程模型的扩展用来支持企业集成模式(Enterprise Integration Patterns)。Spring Integration 是对 Spring Messaging 的扩展。它提出了不少新的概念，包括消息的路由 MessageRoute、消息的分发 MessageDispatcher、消息的过滤 Filter、消息的转换 Transformer、消息的聚合 Aggregator、消息的分割 Splitter 等等。同时还提供了包括 MessageChannel 的实现 DirectChannel、ExecutorChannel、PublishSubscribeChannel 等; MessageHandler 的实现 MessageFilter、ServiceActivatingHandler、MethodInvokingSplitter 等内容。
+* SpringCloud Stream 在 Spring Integration 的基础上进行了封装，提出了 `Binder`, `Binding`, `@EnableBinding`, `@StreamListener` 等概念; 与 Spring Boot Actuator 整合，提供了 `/bindings`, `/channels` endpoint; 与 Spring Boot Externalized Configuration 整合，提供了 `BindingProperties`, `BinderProperties` 等外部化配置类; 增强了消息发送失败的和消费失败情况下的处理逻辑等功能。
+* SCS 是 Spring Integration 的加强，同时与 Spring Boot 体系进行了融合，也是 Spring Cloud Bus 的基础。**它屏蔽了底层消息中间件的实现细节，希望以统一的一套 API 来进行消息的发送/消费，底层消息中间件的实现细节由各消息中间件的 Binder 完成。**
+* `Binder` 是提供与外部消息中间件集成的组件，会构造 `Binding`，提供了 2 个方法分别是 `bindConsumer` 和 `bindProducer` 分别用于构造生产者和消费者。目前官方的实现有 [Rabbit Binder](https://github.com/spring-cloud/spring-cloud-stream-binder-rabbit) 和 [Kafka Binder](https://github.com/spring-cloud/spring-cloud-stream-binder-kafka)， [Spring Cloud Alibaba](https://github.com/spring-cloud-incubator/spring-cloud-alibaba) 内部实现了 [RocketMQ Binder](https://github.com/spring-cloud-incubator/spring-cloud-alibaba/tree/master/spring-cloud-stream-binder-rocketmq)。
+* 应用程序通过 inputs或者 outputs来与 Spring Cloud Stream中 binder对象交互。我们主要就是操作binder对象与底层mq交换,而 Spring Cloud Stream的 binde对象负责与消息中间件交互
+* Spring Cloud Stream为一些供应商的消息中间件产品提供了个性化的自动化配置实现,引用了发布-订阋、消费组、分区的三个核心概念
+
+> Spring Cloud Stream目前仅支持RabbitMQ和Kafka
+
+  
+
+> Stream中消息通信的方式依然遵循**发布-订阅**模式。在RabbitMQ中Topic就是Exchange, 在Kafka中就是Topic
+
+### 18.2 Binder探究
+
+- 引入Stream之前：![GMF9uU](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/GMF9uU.png)
+  
+  - 生产者和消费者之间靠消息媒介（队列）传递信息（Message）内容
+  
+  - 消息必须走特定的通道（Message Channel）
+  
+  - 消息通道Message Channel的子接口SubscripableChannel
+
+- 引入Spring Cloud Stream之后
+  
+  - ![Xc8VZu](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/Xc8VZu.jpg)
+  
+  - `Binding` 从图中可以看出，它是连接应用程序跟消息中间件的桥梁，用于消息的消费和生产。
+  
+  - 通过向应用程序暴露统一的Channel通道，使得应用程序不再需要考虑各种不同的消息中间件的实现。
+
+- ![1Nj03X](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/1Nj03X.png)
+  
+  - **Input对应生产者，Output对应消费者**
+
+### 18.3 SCS中的标准流程和常用注解
+
+- 
 
 
 
@@ -1938,4 +2310,10 @@ ribbon:
 - [Netflix/zuul: Zuul is a gateway service that provides dynamic routing, monitoring, resiliency, security, and more.](https://github.com/Netflix/zuul)
 - [Spring Cloud Gateway](https://spring.io/projects/spring-cloud-gateway)
 - [Webflux快速入门 - 聂晨 - 博客园](https://www.cnblogs.com/niechen/p/9303451.html)
-- 
+- [Spring Cloud Config 中文文档 参考手册 中文版](https://www.springcloud.cc/spring-cloud-config.html)
+- [Spring Cloud Bus 中文文档 参考手册 中文版](https://www.springcloud.cc/spring-cloud-bus.html)
+- [Spring Cloud stream - Spring Cloud中国社区](http://docs.springcloud.cn/user-guide/stream/)
+- [干货｜Spring Cloud Stream 体系及原理介绍 | Format's Notes](https://fangjian0423.github.io/2019/04/03/spring-cloud-stream-intro/)
+- [Spring Cloud Stream中文指导手册_Java_qq_32734365的博客-CSDN博客](https://blog.csdn.net/qq_32734365/article/details/81413218#spring-cloud-stream)
+  
+  
