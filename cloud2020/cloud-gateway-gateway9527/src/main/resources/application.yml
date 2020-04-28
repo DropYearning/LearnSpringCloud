@@ -23,6 +23,18 @@ spring:
           uri: lb://cloud-payment-service
           predicates:
             - Path=/payment/lb/**
+            # - Method=GET
+            # - Query=param, \d+ #要有参数名param,并且值为正数才会跳转路由
+            # - Host=**.atguigu.con
+            # - Between=2020-03-06T12:08:15.582+08:00[Asia/Shanghai],2020-03-06T12:08:15.582+08:00[Asia/Shanghai]
+            # - Before=2020-03-06T12:08:15.582+08:00[Asia/Shanghai]
+        - id: temp_route
+          uri: http://www.baidu.com
+          predicates:
+            - Path=/payment/temp/**
+            # - After=2020-03-01T12:08:15.582+08:00[Asia/Shanghai]
+            # - Cookie=username,zhangsan
+            - Header=X-Request-Id, \d+  #请求头要有X-Request-Id属性，并且值为正数
 
 eureka:
   instance:
