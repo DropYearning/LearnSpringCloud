@@ -143,7 +143,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
       </build>
   ```
 
-## 3 cloud-provider-payment8001微服务提供者支付模块
+## 3 生产者cloud-provider-payment8001微服务模块
 
 - 1、建module
 
@@ -172,7 +172,7 @@ SpringBoot 2.x + SpringCloud **Hoxton**
     - [@RequestBody的使用_Java_JustryDeng-CSDN博客](https://blog.csdn.net/justry_deng/article/details/80972817)
   - 6、测试业务类
 
-## 4 cloud-consumer-order801微服务消费者订单模块（RestTemplate）
+## 4 消费者cloud-consumer-order801微服务模块
 
 - 按照以前的步骤编写微服务
 
@@ -1768,7 +1768,134 @@ ribbon:
 
 ### 15.5 Gateway中常用的Predicate
 
-- 
+- Predicate可以用在routes中指定该路由在什么条件下生效
+
+- Spring Cloud Gateway将路由匹配作为 Spring Web Flux Handler Mapping基础架构的一部分。
+
+- Spring Cloud Gateway包括许多内置的RoutePredicate工厂。所有这些Predicate都与HTTP请求的不同属性匹配。多个RoutePredicate工厂可以进行组合
+
+- Spring Cloud Gateway创建 Route对象时,使用 Route Predicate Factory创建 Predicate对象, Predicate对象可以赋值给Route. Spring Cloud Gateway包含许多内置的 Route Predicate Factories
+
+- 所有这些谓词都匹配HTTP请求的不同属性。多种谓词工厂可以组合,并通过逻辑and
+
+- [spring cloud gateway系列教程1—Route Predicate - 知乎](https://zhuanlan.zhihu.com/p/54697618)
+
+- （一）After：After Route Predicate Factory使用的是时间作为匹配规则，只要当前时间大于设定时间，路由才会匹配请求。
+  
+  - `After=2020-03-01T12:08:15.582+08:00[Asia/Shanghai]`
+  
+  - 在这个时间之后该路由才生效
+  
+  - 时间串可以通过`ZonedDateTime.now()`获得
+
+- （二）Before：Before Route Predicate Factory也是使用时间作为匹配规则，只要当前时间小于设定时间，路由才会匹配请求。
+
+- （三）Between：Between Route Predicate Factory也是使用两个时间作为匹配规则，只要当前时间大于第一个设定时间，并小于第二个设定时间，路由才会匹配请求。
+  
+  - `Between=2018-12-25T14:33:47.789+08:00, 2018-12-26T14:33:47.789+08:00`
+
+- （四）Cookie：Cookie Route Predicate Factory使用的是**cookie名字和正则表达式的value作为两个输入参数**，请求的cookie需要匹配cookie名和符合其中value的正则
+  
+  - `- Cookie=username,zhangsan`
+  
+  - 可以使用curl命令在命令后发送GET/POST请求来测试
+    
+    - `curl http://127.0.0.1:9527/payment/temp --cookie "username=zhangsan"`
+    
+    - ![3wz2RB](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/3wz2RB.png)
+
+- （五）Header：Header Route Predicate Factory，与Cookie Route Predicate Factory类似，也是两个参数，一个header的name，一个是正则匹配的value
+  
+  - `Header=X-Request-Id, \d+  #请求头要有X-Request-Id属性，并且值为正数`
+  
+  - `curl http://127.0.0.1:9527/payment/temp -H "X-Request-Id:123"`
+  
+  - ![HvklGP](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/HvklGP.png)
+
+- （六）Host：Host Route Predicate Factory使用的是host的列表作为参数，host使用Ant style匹配
+  
+  - `Host=**.somehost.org,**.anotherhost.org`
+  
+  - 路由会匹配Host诸如：`www.somehost.org` 或 `beta.somehost.org`或`www.anotherhost.org`等请求。
+
+- （七）Method：Method Route Predicate Factory是通过HTTP的method来匹配路由
+  
+  - `- Method=GET`
+  
+  - 路由会匹配到所有GET方法的请求。
+
+- （八）Path：Path Route Predicate Factory使用的是path列表作为参数，使用Spring的`PathMatcher`匹配path，可以设置可选变量
+  
+  - `Path=/foo/{segment},/bar/{segment}`
+  
+  - 上面路由可以匹配诸如：`/foo/1` 或 `/foo/bar` 或 `/bar/baz`等 其中的segment变量可以通过下面方式获取
+    
+    ```java
+    PathMatchInfo variables = exchange.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+    Map<String, String> uriVariables = variables.getUriVariables();
+    String segment = uriVariables.get("segment");
+    ```
+    
+    
+
+- （九）Query：Query Route Predicate Factory可以通过一个或两个参数来匹配路由，一个是查询的name，一个是查询的正则value
+  
+  - `Query=baz`
+  - 路由会匹配所有包含`baz`查询参数的请求
+  
+  
+
+### 15.6 Gateway Filter
+
+- [spring cloud gateway系列教程2——GatewayFilter_上篇 | 二当家的黑板报](https://www.edjdhbb.com/2019/01/01/spring%20cloud%20gateway%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B2%E2%80%94%E2%80%94GatewayFilter_%E4%B8%8A%E7%AF%87/)
+
+- [Spring-Cloud-Gateway之过滤器GatewayFilter - 简书](https://www.jianshu.com/p/eb3a67291050)
+
+- Route filters可以通过一些方式修改HTTP请求的输入和输出，针对某些特殊的场景，Spring Cloud Gateway已经内置了很多不同功能的GatewayFilter Factories。
+
+- Gateway Filter的作用：
+  
+  - 在“pre”类型的过滤器可以做**参数校验、权限校验、流量监控、日志输出、协议转换**等
+  
+  - 在“post”类型的过滤器中可以做**响应内容、响应头的修改，日志的输出，流量监控**等。
+
+- 自定义过滤器：
+
+- 编写过滤器类实现`GlobalFilter, Ordered`接口，并@Component注入容器:
+  
+  ```java
+  @Component
+  @Slf4j
+  public class MyLogGatewayFilter implements GlobalFilter, Ordered {
+      @Override
+      public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+          log.info("*****" + new Date());
+          String username = exchange.getRequest().getQueryParams().getFirst("username");
+          // 判断请求参数中是否有username字段，若有才放行
+          if (username == null){
+              log.info("***非法用户");
+              exchange.getResponse().setStatusCode(HttpStatus.NOT_ACCEPTABLE);
+              return exchange.getResponse().setComplete();
+          }else{
+              chain.filter(exchange);
+          }
+          return chain.filter(exchange);
+      }
+  
+      @Override
+      public int getOrder() {
+          return 0; // 加载过滤器的顺序，返回值越小优先级越高
+      }
+  }
+  ```
+
+- 访问：http://127.0.0.1:9527/payment/lb?username=zhangsan 正常，访问http://127.0.0.1:9527/payment/lb 错误
+
+
+
+## 16 SpringCloud Config分布式配置中心
+
+
 
 
 
