@@ -4,7 +4,13 @@ server:
 # 配置微服务名称
 spring:
   application:
-    name: cloud-order-com.example.springcloud.service
+    name: cloud-order-service
+  zipkin:
+    base-url: http://127.0.0.1:9411
+  sleuth:
+    sampler:
+      # 采样率的值介于0与1之间，1表示全部采集
+      probability: 1
 
 # 配置Eureka
 eureka:
@@ -15,9 +21,9 @@ eureka:
     fetch-registry: true
     service-url:
       # 单机版
-      # defaultZone: http://localhost:7001/eureka
+      defaultZone: http://localhost:7001/eureka
       # 集群版
-      defaultZone: http://eureka7001.com:7001/eureka,http://eureka7002.com:7002/eureka
+      # defaultZone: http://eureka7001.com:7001/eureka,http://eureka7002.com:7002/eureka
 
 
 

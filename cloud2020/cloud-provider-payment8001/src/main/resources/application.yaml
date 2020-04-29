@@ -11,6 +11,12 @@ spring:
     url: jdbc:mysql://localhost:3306/cloud2020?characterEncoding=utf8&useSSL=false&serverTimezone=UTC
     username: root
     password: 12345678
+  zipkin:
+    base-url: http://127.0.0.1:9411
+  sleuth:
+    sampler:
+      # 采样率的值介于0与1之间，1表示全部采集
+      probability: 1
 
 # Mybatis
 mybatis:
