@@ -1,4 +1,4 @@
-LearnSpringCloud
+# LearnSpringCloud
 
 SpringBoot 2.x + SpringCloud **Hoxton**
 
@@ -2065,6 +2065,7 @@ ribbon:
 - 如何实现客户端配置文件的动态刷新？
   
   - 1、3355引入actuator依赖
+  
   - 2、3355在配置文件中暴露监控端点
     
     ```yaml
@@ -2075,9 +2076,13 @@ ribbon:
           exposure:
             include: "*"
     ```
+  
   - 3、在业务类上标注`@RefreashScope`
+  
   - 4、向3355暴露的监控端口发送POST请求告知其更新配置：`curl -X POST "http://127.0.0.1:3355/actuator/refresh"`
+    
     - ![jgO2Vl](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/jgO2Vl.png)
+  
   - 5、3355在不重启的情况下也能更新配置了，避免了服务重启
 
 - 仍然存在的问题：
@@ -2160,7 +2165,7 @@ ribbon:
       client:
         service-url:
           defaultZone: http://localhost:7001/eureka
-          
+    
     # RabbitMQ, 暴露bus刷新配置的端点
     management:
       endpoints:
@@ -2236,14 +2241,16 @@ ribbon:
 
 - Spring Integration 提供了 Spring 编程模型的扩展用来支持企业集成模式(Enterprise Integration Patterns)。Spring Integration 是对 Spring Messaging 的扩展。它提出了不少新的概念，包括消息的路由 MessageRoute、消息的分发 MessageDispatcher、消息的过滤 Filter、消息的转换 Transformer、消息的聚合 Aggregator、消息的分割 Splitter 等等。同时还提供了包括 MessageChannel 的实现 DirectChannel、ExecutorChannel、PublishSubscribeChannel 等; MessageHandler 的实现 MessageFilter、ServiceActivatingHandler、MethodInvokingSplitter 等内容。
 * SpringCloud Stream 在 Spring Integration 的基础上进行了封装，提出了 `Binder`, `Binding`, `@EnableBinding`, `@StreamListener` 等概念; 与 Spring Boot Actuator 整合，提供了 `/bindings`, `/channels` endpoint; 与 Spring Boot Externalized Configuration 整合，提供了 `BindingProperties`, `BinderProperties` 等外部化配置类; 增强了消息发送失败的和消费失败情况下的处理逻辑等功能。
+
 * SCS 是 Spring Integration 的加强，同时与 Spring Boot 体系进行了融合，也是 Spring Cloud Bus 的基础。**它屏蔽了底层消息中间件的实现细节，希望以统一的一套 API 来进行消息的发送/消费，底层消息中间件的实现细节由各消息中间件的 Binder 完成。**
+
 * `Binder` 是提供与外部消息中间件集成的组件，会构造 `Binding`，提供了 2 个方法分别是 `bindConsumer` 和 `bindProducer` 分别用于构造生产者和消费者。目前官方的实现有 [Rabbit Binder](https://github.com/spring-cloud/spring-cloud-stream-binder-rabbit) 和 [Kafka Binder](https://github.com/spring-cloud/spring-cloud-stream-binder-kafka)， [Spring Cloud Alibaba](https://github.com/spring-cloud-incubator/spring-cloud-alibaba) 内部实现了 [RocketMQ Binder](https://github.com/spring-cloud-incubator/spring-cloud-alibaba/tree/master/spring-cloud-stream-binder-rocketmq)。
+
 * 应用程序通过 inputs或者 outputs来与 Spring Cloud Stream中 binder对象交互。我们主要就是操作binder对象与底层mq交换,而 Spring Cloud Stream的 binde对象负责与消息中间件交互
+
 * Spring Cloud Stream为一些供应商的消息中间件产品提供了个性化的自动化配置实现,引用了发布-订阋、消费组、分区的三个核心概念
 
 > Spring Cloud Stream目前仅支持RabbitMQ和Kafka
-
-  
 
 > Stream中消息通信的方式依然遵循**发布-订阅**模式。在RabbitMQ中Topic就是Exchange, 在Kafka中就是Topic
 
@@ -2265,55 +2272,383 @@ ribbon:
   
   - 通过向应用程序暴露统一的Channel通道，使得应用程序不再需要考虑各种不同的消息中间件的实现。
 
-- ![1Nj03X](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/1Nj03X.png)
+- ![1ofjgn](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/1ofjgn.png)
+  
+  ![1Nj03X](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/1Nj03X.png)
   
   - **Input对应生产者，Output对应消费者**
 
 ### 18.3 SCS中的标准流程和常用注解
 
-- 
+- **Middleware**：中间件,目前只支持 RabbitMQ和Kafka
 
+- **Binder**：屏蔽底层MQ的差异，是中间连接件
 
+- **Channel**：通道,是队列 Queue的一种抽象,在消息通讯系统中就是实现存储和转发的媒介。用于存放source接收到的数据,或者是存放binder拉取的数据。
 
+- **Source**：source用于获取数据(要发送到mq的数据)
 
+- **Sink**：sink用于输出
 
+- SCS中的常用注解：
+  
+  - `@Input`: 注解标识输入通道, 通过该输入通道接收到的消息进入应用程序
+  
+  - `@Output`:注解标识输出通道, 发布的消息将通过该通道离开应用程序
+  
+  - `@StreamListener` : 监听队列, 用于消费者的队列的消息接收
+  
+  - `@EnableBinding`：激活作用。指信道 channel和 exchange绑定在一起
 
+### 18.4 发送消息模块8801（生产者）
 
+> 首先需要启动RabbitMQ环境
 
+- 1、新建`spring-cloud-starter-stream-rabbit`模块，引入`spring-cloud-starter-stream-rabbit`POM依赖
+
+- 2、配置Stream生产者模块的YML
+  
+  ```yaml
+  server:
+    port: 8801
+  
+  spring:
+    application:
+      name: cloud-stream-provider
+    cloud:
+      stream:
+        binders: # 在此处配置要绑定的rabbitMQ的服务信息
+          defaultRabbit: # 表示定义的名称，用于binding的整合
+            type: rabbit # 消息中间件类型
+            environment: # 设置rabbitMQ的相关环境配置
+              spring:
+                rabbitmq:
+                  host: localhost # RabbitMQ架设的host
+                  port: 5672 # port
+                  username: guest
+                  password: guest
+        bindings: # 服务的整合处理
+          output: # 这个名字是一个通道的名称(output表示这个是一个消息的生产者)
+            destination: studyExchange  # 表示要使用的RabbitMQ的exchange名称
+            content-type: application/json # 设置消息类型，本次为json，文本则设为text/plain
+            binder: defaultRabbit # 设置要绑定的消息服务的具体设置
+  
+  eureka:
+    client:
+      service-url:
+        defaultZone: http://localhost:7001/eureka
+    instance:
+      lease-renewal-interval-in-seconds: 2 # 设置心跳的间隔时间，默认30
+      lease-expiration-duration-in-seconds: 5 # 超过5秒间隔，默认90
+      instance-id: send-8801.com # 主机名
+      prefer-ip-address: true # 显示ip
+  ```
+
+- 3、编写主启动类
+
+- 4、编写发送消息的接口和实现类
+  
+  ```java
+  public interface IMessageProvider {
+      String send();
+  }
+  ```
+  
+  // 实现类
+  @EnableBinding(Source.class) // 表明这是一个Source（发送者、源）
+  public class MessageProvider implements IMessageProvider {
+  
+      @Resource
+      private MessageChannel output; // 消息发送管道
+      
+      @Override
+      public String send() {
+          String serial = UUID.randomUUID().toString();
+          output.send(MessageBuilder.withPayload(serial).build());
+          System.out.println("*****serial: " + serial);
+          return serial;
+      }
+  
+  }
+
+```
+- 5、编写Controller类：
+
+  ```java
+  @RestController
+  public class SendMessageController {
+      @Resource
+      private IMessageProvider messageProvider;
+
+      @GetMapping(value = "/send")
+      public String sendMessage(){
+          return messageProvider.send();
+      }
+  }
+```
+
+- 6、启动7001，8801, rabbitMQ测试：访问http://127.0.0.1:8801/send 可以不断向RabbitMQ中发送消息
+
+### 18.5 接收消息模块 8802/8803（消费者）
+
+- 1、新建模块`cloud-stream-consumer-rabbitmq8802`, 引入`spring-cloud-starter-stream-rabbit`POM依赖
+
+- 2、编写消费者配置文件：
+  
+  ```yml
+  server:
+    port: 8802
+  
+  spring:
+    application:
+      name: cloud-stream-consumer
+    cloud:
+      stream:
+        binders: # 在此处配置要绑定的rabbitMQ的服务信息
+          defaultRabbit: # 表示定义的名称，用于binding的整合
+            type: rabbit # 消息中间件类型
+            environment: # 设置rabbitMQ的相关环境配置
+              spring:
+                rabbitmq:
+                  host: localhost
+                  port: 5672
+                  username: guest
+                  password: guest
+        bindings: # 服务的整合处理
+          input: # 这个名字是一个通道的名称(input表示消费者)
+            destination: studyExchange # 表示要使用的exchange名称定义
+            content-type: application/json # 设置消息类型，本次为json，文本则设为text/plain
+            binder: defaultRabbit # 设置要绑定的消息服务的具体设置
+  
+  eureka:
+    client:
+      service-url:
+        defaultZone: http://localhost:7001/eureka
+    instance:
+      lease-renewal-interval-in-seconds: 2 # 设置心跳的间隔时间，默认30
+      lease-expiration-duration-in-seconds: 5 # 超过5秒间隔，默认90
+      instance-id: receive-8802.com #主机名
+      prefer-ip-address: true # 显示ip
+  ```
+
+- 3、编写主启动类和如下的控制器
+  
+  ```java
+  @Component
+  @EnableBinding(Sink.class)
+  public class ReceiveMessageListenerController {
+  
+      @Value("${server.port}")
+      private String serverPort;
+  
+      @StreamListener(Sink.INPUT)
+      public void input(Message<String> message){
+          System.out.println("消费者8802, 收到的消息为: " + message.getPayload() + " port:" + serverPort);
+      }
+  }
+  ```
+
+- 4、启动测试，访问http://127.0.0.1:8801/send成功发送消息，且可以在8802的控制台接收到消息：
+  
+  - ![Qzwj4a](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/Qzwj4a.png)
+  
+  - ![g13NUM](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/g13NUM.png)
+
+### 18.6 解决消息的重复消费
+
+- 1、参照8802新建一个`cloud-stream-consumer-rabbitmq8803`模块
+
+- 2、运行7001/8801/8802/8803发现：
+  
+  - 有重复消费的问题  8802和8803都收到了消息。有时会造成错误，例如如果同一个支付订单被处理2次可能会扣款2次
+  
+  - ![cut8Pd](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/cut8Pd.png)
+  
+  - 默认分组的group是不同的，被认为是不同组，可以重复消费
+
+- 解决方法：为消费者设定`group`，**同一个group中的多个消费者是竞争关系，只能有其中一个获得消息并消费，但是不同的组是重复消费的**
+  
+  ```yml
+  spring:
+      cloud:     
+         bindings: # 服务的整合处理
+          input: # 这个名字是一个通道的名称(input表示消费者)
+            destination: studyExchange # 表示要使用的exchange名称定义
+            content-type: application/json # 设置消息类型，本次为json，文本则设为text/plain
+            binder: defaultRabbit # 设置要绑定的消息服务的具体设置
+            group: groupA # 指定分组
+  ```
+
+- 效果：
+  
+  - 
+  
+  - ![eMk9Em](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/eMk9Em.png)
+
+- 如果需要不发生重估消费，只需要将两个消费者模块的group改为相同即可
+
+### 18.7 消息持久化
+
+- 如果此时关闭8802/8803，保留8801，继续访问 http://127.0.0.1:8801/send 发送消息，则8802/8803是否会**错过消息**？
+
+- 去掉8802中的group属性，保留8803中的gourp属性，再以此启动8802/8803
+  
+  - 8802启动时消息丢失
+  
+  - 8803启动时会重新读取到消息：![AIUXFv](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/AIUXFv.png)
+
+> 背后的原理是因为exchange是否绑定了queue。
+
+## 19 SpringCloud Sleuth分布式请求连接跟踪
+
+### 19.1 链路跟踪的介绍
+
+- 随着业务发展，系统拆分导致系统调用链路愈发复杂一个前端请求可能最终需要调用很多次后端服务才能完成，当整个请求变慢或不可用时，我们是无法得知该请求是由某个或某些后端服务引起的，这时就需要解决如何快读定位服务故障点，以对症下药。于是就有了**分布式系统调用跟踪**的诞生。
+
+- 使用最为广泛的开源实现是 Twitter 的 **Zipkin**，为了实现平台无关、厂商无关的分布式服务跟踪，CNCF 发布了布式服务跟踪标准 Open Tracing。国内，淘宝的“鹰眼”、京东的“Hydra”、大众点评的“CAT”、新浪的“Watchman”、唯品会的“Microscope”、窝窝网的“Tracing”都是这样的系统。
+
+- 一般的，一个分布式服务跟踪系统，主要有三部分：数据收集、数据存储和数据展示。根据系统大小不同，每一部分的结构又有一定变化。譬如，对于大规模分布式系统，数据存储可分为实时数据和全量数据两部分，实时数据用于故障排查（troubleshooting），全量数据用于系统优化；数据收集除了支持平台无关和开发语言无关系统的数据收集，还包括异步数据收集（需要跟踪队列中的消息，保证调用的连贯性），以及确保更小的侵入性；数据展示又涉及到数据挖掘和分析。虽然每一部分都可能变得很复杂，但基本原理都类似。
+
+- **Spring Cloud Sleuth**为服务之间调用提供链路追踪。**通过Sleuth可以很清楚的了解到一个服务请求经过了哪些服务，每个服务处理花费了多长。从而让我们可以很方便的理清各微服务间的调用关系**。此外Sleuth可以帮助我们：
+  
+  * 耗时分析: 通过Sleuth可以很方便的了解到每个采样请求的耗时，从而分析出哪些服务调用比较耗时;
+  * 可视化错误: 对于程序未捕捉的异常，可以通过集成Zipkin服务界面上看到;
+  * 链路优化: 对于调用比较频繁的服务，可以针对这些服务实施一些优化措施。
+  * spring cloud sleuth可以结合zipkin，将信息发送到zipkin，利用zipkin的存储来存储信息，利用`zipkin` ui来展示数据。【sleuth负责监控，zipkin负责展现】
+* ![uyDGc6](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/uyDGc6.jpg)
+  
+  * 
+
+* ![pAqmZJ](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/pAqmZJ.png)
+  
+  * 一条链路通过 Trace ld唯一标识, Span标识发起的请求信息,各span通过 parent id关联起来
+  * Trace：由一系列Span构成的树形调用链，存在唯一的标识
+  * Span：可以通俗的理解为一次请求调用
+
+### 19.2 Zipkin的安装
+
+> 从SpringCloud F版开始就不再需要自己去安装并运行Zipkin Server了，只需要调用jar包即可。
+
+- 下载地址：https://dl.bintray.com/openzipkin/maven/io/zipkin/java/zipkin-server/
+
+- 下载并运行：[zipkin-server-2.12.9-exec.jar](https://dl.bintray.com/openzipkin/maven/io/zipkin/java/zipkin-server/2.12.9/zipkin-server-2.12.9-exec.jar)
+
+- `java -jar zipkin-server-2.12.9-exec.jar`直接运行，默认端口为9411
+
+- 访问 http://127.0.0.1:9411/zipkin/ 进入Zipkin后台：![oxQHh8](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/oxQHh8.png)
+
+### 19.3  使用Sleuth追踪请求调用链
+
+- 1、在80/8001模块中引入Sleuth的坐标
+  
+  ```xml
+   <!--包含了sleuth和zipkin-->
+          <dependency>
+              <groupId>org.springframework.cloud</groupId>
+              <artifactId>spring-cloud-starter-zipkin</artifactId>
+          </dependency>
+  ```
+
+- 2、在8001的YAML中配置zipkin：
+  
+  ```yml
+  # 微服务名称
+  spring:
+    application:
+      name: cloud-payment-service
+    zipkin:
+      base-url: http://127.0.0.1/9411
+    sleuth:
+      sampler:
+        # 采样率的值介于0与1之间，1表示全部采集
+        probability: 1
+  ```
+
+- 3、8001增加控制类方法:
+  
+  ```java
+      @GetMapping(value = "/payment/zipkin")
+      public String paymentZipkin() {
+          return "Zipkin~~~~ O(∩_∩)O哈哈~";
+      }
+  ```
+
+- 4、801模块同理修改POM、YAML
+
+- 5、启动这三个服务，访问 http://127.0.0.1:801/consumer/payment/zipkin 测试
+  
+  - ![Q0e1QZ](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/Q0e1QZ.png)
+  
+  - ![uYX1TM](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/04/uYX1TM.png)
 
 ## 参考资料
 
 - [1.5W 字搞懂 Spring Cloud，太牛了！](https://mp.weixin.qq.com/s/EHPKm50KmHq_KZIHyVef3A)
+
 - [2020最新版周阳SpringCloud(H版&alibaba)框架开发教程 学习笔记_Java_qq_42107430的博客-CSDN博客](https://blog.csdn.net/qq_42107430/article/details/104683947)
+
 - [espmihacker/cloud2020: 2020最新版SpringCloud(H版&alibaba)框架开发教程全套完整版从入门到精通(大牛讲授spring cloud)](https://github.com/espmihacker/cloud2020)
+
 - [SpringMVC @ResponseBody和@RequestBody使用 - 简书](https://www.jianshu.com/p/7097fea8ce3f)
+
 - [springcloud(二)：注册中心Eureka - 纯洁的微笑 - 博客园](https://www.cnblogs.com/ityouknow/p/6854805.html)
+
 - [微服务注册中心Eureka架构深入解读 - InfoQ](https://www.infoq.cn/article/jlDJQ*3wtN2PcqTDyokh)
+
 - [IDEA Services 工具窗口: 一个管理所有服务的地方【译】 - 简书](https://www.jianshu.com/p/2e2332f247fe)
+
 - [zookeeper集群搭建 - 掘金](https://juejin.im/post/5ba879ce6fb9a05d16588802)
+
 - [Consul是什么 · Consul入门指南](https://book-consul-guide.vnzmi.com/01_what_is_consul.html)
+
 - [Spring Cloud Consul 中文文档 参考手册 中文版](https://www.springcloud.cc/spring-cloud-consul.html)
+
 - [CAP理论中的P到底是个什么意思？ - 知乎](https://www.zhihu.com/question/54105974)
+
 - [分布式系统之CAP原理 - heapStark - 博客园](https://www.cnblogs.com/heapStark/p/8351852.html)
+
 - [分布式CAP理论 - 简书](https://www.jianshu.com/p/ecc14fc291a8)
+
 - [Ribbon详解 - 简书](https://www.jianshu.com/p/1bd66db5dc46)
+
 - [Ribbon、Feign和OpenFeign的区别_Java_紫眸的博客-CSDN博客](https://blog.csdn.net/zimou5581/article/details/89949852)
+
 - [Netflix/Hystrix - Github](https://github.com/Netflix/Hystrix)
+
 - [SpringCloud使用Hystrix实现断路器 | Format's Notes](https://fangjian0423.github.io/2017/02/19/springcloud-hystrix/)
+
 - [【原创】谈谈服务雪崩、降级与熔断 - 孤独烟 - 博客园](https://www.cnblogs.com/rjzheng/p/10340176.html)
+
 - [CircuitBreaker](https://www.martinfowler.com/bliki/CircuitBreaker.html)
+
 - [微服务设计模式 | Circuit Breaker Pattern | 「浮生若梦」 - sczyh30's blog](https://www.sczyh30.com/posts/Microservice/circuit-breaker-pattern/)
+
 - [防雪崩利器：熔断器 Hystrix 的原理与使用 - 编程随笔 - SegmentFault 思否](https://segmentfault.com/a/1190000005988895)
+
 - [Hystrix 配置参数全解析 - 枕边书 - 博客园](https://www.cnblogs.com/zhenbianshu/p/9630167.html)
+
 - [Hystrix使用说明，配置参数说明_Java_tongtong_use的博客-CSDN博客](https://blog.csdn.net/tongtong_use/article/details/78611225)
+
 - [谈谈微服务中的 API 网关（API Gateway） - Savorboard - 博客园](https://www.cnblogs.com/savorboard/p/api-gateway.html)
+
 - [Netflix/zuul: Zuul is a gateway service that provides dynamic routing, monitoring, resiliency, security, and more.](https://github.com/Netflix/zuul)
+
 - [Spring Cloud Gateway](https://spring.io/projects/spring-cloud-gateway)
+
 - [Webflux快速入门 - 聂晨 - 博客园](https://www.cnblogs.com/niechen/p/9303451.html)
+
 - [Spring Cloud Config 中文文档 参考手册 中文版](https://www.springcloud.cc/spring-cloud-config.html)
+
 - [Spring Cloud Bus 中文文档 参考手册 中文版](https://www.springcloud.cc/spring-cloud-bus.html)
+
 - [Spring Cloud stream - Spring Cloud中国社区](http://docs.springcloud.cn/user-guide/stream/)
+
 - [干货｜Spring Cloud Stream 体系及原理介绍 | Format's Notes](https://fangjian0423.github.io/2019/04/03/spring-cloud-stream-intro/)
-- [Spring Cloud Stream中文指导手册_Java_qq_32734365的博客-CSDN博客](https://blog.csdn.net/qq_32734365/article/details/81413218#spring-cloud-stream)
+
+- [Spring Cloud Stream中文指导手册_Java_qq_32734365的博客-CSDN博客](https://blog.csdn.net/qq_32734365/article/details/81413218#spring-cloud-stream) 
+
+- [RabbitMQ之消息持久化_大数据_朱小厮的博客-CSDN博客](https://blog.csdn.net/u013256816/article/details/60875666)
   
-  
+  [springcloud(十二)：使用Spring Cloud Sleuth和Zipkin进行分布式链路跟踪 - 纯洁的微笑博客](http://www.ityouknow.com/springcloud/2018/02/02/spring-cloud-sleuth-zipkin.html)
+
+- [Zipkin首页、文档和下载 - 分布式跟踪系统 - OSCHINA](https://www.oschina.net/p/zipkin)
