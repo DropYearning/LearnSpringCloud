@@ -314,8 +314,6 @@ SpringCloud Alibaba
   
   - [nacos的单机和集群启动一些问题 - 简书](https://www.jianshu.com/p/0cae36a8b3da)
 
-
-
 ### 5.2 Nacos集群的配置步骤
 
 > 3个或3个以上Nacos才能部署集群
@@ -332,7 +330,7 @@ SpringCloud Alibaba
 
 - 修改Nacos的启动脚本`startup.sh`来实现启动不同端口的Nacos实例：
   
-  -  在参数列表里添加`-p`
+  - 在参数列表里添加`-p`
   
   - 在`nohup $JAVA`后面新增`-Dserver.port=${PORT}`这句话前后有空格
   
@@ -434,7 +432,7 @@ SpringCloud Alibaba
   elif [[ "${FUNCTION_MODE}" == "naming" ]]; then
       JAVA_OPT="${JAVA_OPT} -Dnacos.functionMode=naming"
   fi
-  
+  ```
   
   JAVA_MAJOR_VERSION=$($JAVA -version 2>&1 | sed -E -n 's/.* version "([0-9]*).*$/\1/p')
   if [[ "$JAVA_MAJOR_VERSION" -ge "9" ]] ; then
@@ -459,67 +457,74 @@ SpringCloud Alibaba
   echo "$JAVA ${JAVA_OPT}"
   
   if [[ "${MODE}" == "standalone" ]]; then
-      echo "nacos is starting with standalone"
-  else
-      echo "nacos is starting with cluster"
-  fi
   
-  # check the start.out log output file
+      echo "nacos is starting with standalone"
+  
+  else
+  
+      echo "nacos is starting with cluster"
+  
+  fi
+
+# check the start.out log output file
+
   if [ ! -f "${BASE_DIR}/logs/start.out" ]; then
     touch "${BASE_DIR}/logs/start.out"
   fi
-  # start
+
+# start
+
   echo "$JAVA ${JAVA_OPT}" > ${BASE_DIR}/logs/start.out 2>&1 &
   nohup $JAVA -DServer.port=${PORT} ${JAVA_OPT} nacos.nacos >> ${BASE_DIR}/logs/start.out 2>&1 &
   echo "nacos is starting，you can check the ${BASE_DIR}/logs/start.out"
-  ```
-  
+
+```
   - 以后启动Nacos实例时使用`./shartup.sh -p 3333`就可以运行一个3333端口的Nacos
 
 - 配置Nginx:
-  
+
   ```nginx
-  
+
   worker_processes  1;
-  
+
   events {
       worker_connections  1024;
   }
-  
-  
+
+
   http {
       include       mime.types;
       default_type  application/octet-stream;
-  
+
       sendfile        on;
-  
+
       #keepalive_timeout  0;
       keepalive_timeout  65;
-  
+
       upstream cluster{
           server 127.0.0.1:3333;
           server 127.0.0.1:4444;
           server 127.0.0.1:5555;
       }
-  
+
       server {
           listen       1111;
           server_name  localhost;
-  
+
           #charset koi8-r;
-  
+
           #access_log  logs/host.access.log  main;
-  
+
           location / {
               #root   html;
               #index  index.html index.htm;
               proxy_pass http://cluster;
           }
       }
-  
+
       include servers/*;
   }
-  ```
+```
 
 - 启动并测试：
   
@@ -538,24 +543,6 @@ SpringCloud Alibaba
     - `nginx -t` 检查nginx配置文件语法是否正确
   
   - 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ## 参考资料
 
