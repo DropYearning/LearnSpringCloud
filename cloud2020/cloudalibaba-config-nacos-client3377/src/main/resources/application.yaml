@@ -1,0 +1,8 @@
+# nacos注册配置
+spring:
+  profiles:
+    # 配置哪一个分支就会去Nacos中找对应的分支
+    active: dev # 开发环境
+    # active: test # 测试环境
+    # active: pro # 正式环境
+    # active: info
