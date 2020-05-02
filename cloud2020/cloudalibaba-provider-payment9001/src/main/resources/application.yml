@@ -7,7 +7,10 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 127.0.0.1:8848
+        # 单机版
+        # server-addr: 127.0.0.1:8848
+        # 集群版
+        server-addr: 127.0.0.1:1111
 
 # 暴露监控端口
 management:
