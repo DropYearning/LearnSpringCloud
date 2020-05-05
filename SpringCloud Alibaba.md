@@ -816,15 +816,14 @@ SpringCloud Alibaba
     
     - 注意 Sentinel 默认统计的 RT 上限是 4900 ms，**超出此阈值的都会算作 4900 ms**，若需要变更此上限可以通过启动配置项 `-Dcsp.sentinel.statistic.max.rt=xxx` 来配置。
   * **异常比例** (`DEGRADE_GRADE_EXCEPTION_RATIO`)：当资源的每秒请求量 >= N（可配置），并且每秒异常总数占通过量的比值超过阈值（`DegradeRule` 中的 `count`）之后，资源进入降级状态，即在接下的时间窗口（`DegradeRule` 中的 `timeWindow`，以 s 为单位）之内，对这个方法的调用都会自动地返回。
+    
     * 异常比率的阈值范围是 `[0.0, 1.0]`，代表 0% - 100%。
+  
   * **异常数** (`DEGRADE_GRADE_EXCEPTION_COUNT`)：当资源近 1 分钟的异常数目超过阈值之后会进行熔断。
+    
     * 注意由于统计时间窗口是分钟级别的，若 `timeWindow` 小于 60s，则结束熔断状态后仍可能再进入熔断状态。
 
 - **Sentinel的熔断器是没有半开状态的**
-
-
-
-
 
 ### 7.1 配置`RT`策略的服务降级
 
@@ -855,8 +854,6 @@ SpringCloud Alibaba
   - Jmeter 永远一秒钟打进来10个线程(大于5个了)调用/testD, 我们希望200毫秒处理完本次任务, 结果超过200毫秒还没处理完,在未来1秒钟的时间窗口内,断路器打开保险丝跳闸微服务不可用
   
   - 结果：在Jmeter10个线程并发访问触发断路器之后，再次手动访问报异常：`Blocked by Sentinel (flow limiting)`
-    
-    
 
 ### 7.2 配置`异常比例`策略的服务降级
 
@@ -888,8 +885,6 @@ SpringCloud Alibaba
   
   - 访问 /testE 五次之后进入降级，70s后熔断解除，重新开始统计
 
-
-
 ## 8 Sentinel 热点key 限流
 
 - 何为热点？热点即经常访问的数据。很多时候我们希望统计某个热点数据中访问频次最高的 Top K 数据，并对其访问进行限制。比如：
@@ -900,8 +895,6 @@ SpringCloud Alibaba
 - 热点参数限流会统计传入参数中的热点参数，并根据配置的限流阈值与模式，**对包含热点参数的资源调用进行限流**。热点参数限流可以看做是一种特殊的流量控制，仅对包含热点参数的资源调用生效。
   
   - ![SUL4Tu](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/SUL4Tu.jpg)
-
-
 
 ### 8.1 配置hotkey热点限流(@SentinelResource注解)
 
@@ -916,7 +909,7 @@ SpringCloud Alibaba
         // int age = 10 /0;
         return "testHotKey -----";
     }
-    
+
     public String dealTestHotKey(String p1, String p2, BlockException blockException){
         return p1 + "-" + p2 + "dealTestHotKey---------";
     }
@@ -952,27 +945,19 @@ SpringCloud Alibaba
   
   - 效果： 访问 http://127.0.0.1:8401/testHotKey?p1=5&p2=b 不会触发服务降级
 
-
-
 ### 8.3 异常与Sentinel限流的关系
 
 >  `@SentinelResource`处理的是 Sentinel控制台配置的违规情况,有 blockHandler方法配置的兜底处理
 
-
-
 > `RuntimeException` int age=10/0,这个是java运行时报出的运行时异常 RunTime Exception, **@Sentinelresource不管**
 
 - 总结：Sentinelresource主管配置出错,运行出错该走异常走异常
-
-
 
 ## 9 Sentinel 系统保护机制
 
 - Sentinel 系统自适应保护**从整体维度**对应用入口流量进行控制，结合应用的 Load、总体平均 RT、入口 QPS 和线程数等几个维度的监控指标，让系统的入口流量和系统的负载达到一个平衡，让系统尽可能跑在最大吞吐量的同时保证系统整体的稳定性。
 
 - 相当于除了对某个资源或者热点进行限流之外，在所有Sentinel管理的服务之外，又包了一层“保护机制”，能根据整个系统整体状况进行流量控制。
-
-
 
 ### 9.1 系统保护原理
 
@@ -1005,8 +990,6 @@ SpringCloud Alibaba
   * **RT**：当单台机器上所有入口流量的平均 RT 达到阈值即触发系统保护，单位是毫秒。
   * **线程数**：当单台机器上所有入口流量的并发线程数达到阈值即触发系统保护。
   * **入口 QPS**：当单台机器上所有入口流量的 QPS 达到阈值即触发系统保护。
-
-
 
 ## 10 自定义限流处理逻辑
 
@@ -1052,8 +1035,6 @@ public class MyHandler {
 
 - 各个方法之间的关系：![QwwPqu](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/QwwPqu.jpg)
 
-
-
 ## 12 @SentinelResource 注解
 
 Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了 AspectJ 的扩展用于自动定义资源、处理 `BlockException` 等。使用 [Sentinel Annotation AspectJ Extension](https://github.com/alibaba/Sentinel/tree/master/sentinel-extension/sentinel-annotation-aspectj) 的时候需要引入以下依赖：
@@ -1085,8 +1066,6 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
 
 特别地，若 blockHandler 和 fallback 都进行了配置，则被限流降级而抛出 `BlockException` 时只会进入 `blockHandler` 处理逻辑。若未配置 `blockHandler`、`fallback` 和 `defaultFallback`，则被限流降级时会将 `BlockException` **直接抛出**。
 
-
-
 ## 13 Sentinel实现服务熔断
 
 - ![xLRQmt](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/xLRQmt.png)
@@ -1114,15 +1093,277 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
     
     - 主启动类标注@EnableFeignClients //启用feign支持
     
-    - 
+    - 服务层通过Feign调用9003和9004提供的服务：
+    
+    ```java
+        @RequestMapping("/consumer/fallback/{id}")
+        @SentinelResource(value = "fallback") //没有配置,给客户Error页面，不友好
+     public CommonResult<Payment> fallback(@PathVariable("id") Long id){
+            CommonResult<Payment> commonResult = restTemplate.getForObject(SERVICE_URL + "/paymentSQL/" + id, CommonResult.class);
+            if(id == 4){
+                throw new IllegalArgumentException("IllegalArgumentException,非法参数异常");
+            }else if(commonResult.getData() == null){
+                throw new NullPointerException("NullPointerException,该ID没有记录，空指针异常");
+            }
+            return commonResult;
+        }
+    ```
+  
+  - 启动9003/9004/84服务，访问 http://127.0.0.1:84/consumer/fallback/1 ， 默认采用Ribbon的轮询负载均衡，显示的端口在9003和9004之间切换。
+    
+    - 访问 http://127.0.0.1:84/consumer/fallback/4 报错: 没有任何配置，直接返回Error页面，很不友好![3XxUXQ](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/3XxUXQ.png)
 
+### 13.1 只配置fallback的情况
 
+- 使用`@SentinelResource(value = "fallback",fallback = "handlerFallback")` 只配置fallback，fallback只负责业务异常：
+  
+  ```java
+      // 本例是fallback
+      public CommonResult handlerFallback(Long id, Throwable e){
+          Payment payment = new Payment(id, null);
+          return new CommonResult(444, "兜底异常handler，exception内容"+e.getMessage(), payment);
+      }
+  ```
+  
+  - 再次访问 http://127.0.0.1:84/consumer/fallback/4 ：![UNygCn](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/UNygCn.png)
+  
+  - 访问 http://127.0.0.1:84/consumer/fallback/5 ：![9mEEBW](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/9mEEBW.png)
+  
+  - 效果：**无论抛出什么异常都由 handlerFallback 来处理，fallback只负责业务异常**
 
+### 13.2 只配置blockHandler的情况
 
+- `@SentinelResource(value = "fallback", blockHandler = "blockHandler")`
 
+- 配置了blockHandler，只负责sentinel控制台配置违规
+  
+  ```java
+  public CommonResult blockHandler(Long id, BlockException exception){
+         Payment payment = new Payment(id, null);
+         return new CommonResult<>(445, "blockHandler-sentinel 限流，无此流水号：blockException" + exception.getMessage(), payment);
+  }
+  ```
 
+- 访问http://127.0.0.1:84/consumer/fallback/4 ：照样进入Error页面：![kBhZHS](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/kBhZHS.png)
 
+- 在Sentinel后台配置任意的流控规则，例如异常数流控：
+  
+  - 如果没有触发Sentienl的异常数降级，则还是显示Error页面
+  
+  - 如果触发了Sentinel的异常降级，则调用Handler方法，显示：![cDIgkf](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/cDIgkf.png)
 
+- 总结：handler只负责sentinel流控或者降级的提示
+
+### 13.3 fallbcak和blockHandler都配置的情况
+
+- `@SentinelResource(value = "fallback",fallback = "handlerFallback", blockHandler = "blockHandler",  
+   exceptionsToIgnore = {IllegalArgumentException.class}) // 配置了blockHandler和fallback`
+
+- 效果：被限流/降级时调用blockHandler方法，java出现异常时调用fallback方法
+
+- 配置异常例外项：
+  
+  - 对于一些比较严重的异常，我们还是选择直接返回Java的Error页面，而不是作出友好提示
+  
+  - `@SentinelResource(value = "fallback",fallback = "handlerFallback", blockHandler = "blockHandler", exceptionsToIgnore = {IllegalArgumentException.class})`
+  
+  - exceptionsToIgnore = {IllegalArgumentException.class} 的含义是忽略IllegalArgumentException，若出现IllegalArgumentException则不再调用fallbcak方法，而是直接返回Java的Error页面
+
+### 13.4 Sentinel整合Ribbon + openFeign + fallback整合
+
+- 引入OpenFeign的POM依赖
+
+- 在84的主配置文件中开启Feign的支持，在主启动类中标注@EnableFeignClients
+
+- 添加Feign服务接口，与生产者对应:
+  
+  ```java
+  // Feign使用接口 + 注解的方式实现远程调用
+  // fallback指定服务降级时调用的类
+  @FeignClient(value = "nacos-payment-provider", fallback = PaymentFallbackService.class)
+  public interface PaymentService {
+  
+      @GetMapping("/paymentSQL/{id}")
+      CommonResult<Payment> paymentSQL(@PathVariable("id") Long id);
+  }
+  ```
+
+- 编写`PaymentFallbackService`类指定服务降级时调用的类:
+
+```java
+  @Component
+  public class PaymentFallbackService implements PaymentService {
+      @Override
+      public CommonResult<Payment> paymentSQL(Long id) {
+          return new CommonResult<>(444, "服务降级 ---- fallback");
+      }
+  }
+```
+
+```
+- 在控制器中增加方法：
+
+```java
+    @Resource
+    private PaymentService paymentService;
+
+    @GetMapping("/consumer/paymentSQL/{id}")
+    public CommonResult<Payment> paymentSQL(@PathVariable("id") Long id){
+        return paymentService.paymentSQL(id);
+    }
+```
+
+- 访问 http://127.0.0.1:84/consumer/paymentSQL/1 ： ![OFAmW2](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/OFAmW2.png)
+
+- 关闭服务提供者9003/9004，生产者宕机，访问 http://127.0.0.1:84/consumer/paymentSQL/1 ，触发OpenFeign的服务降级:![SlN9Xj](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/SlN9Xj.png)
+
+## 14 Sentinel 与 Hystrix、resilience4j 的对比
+
+- [Guideline: 从 Hystrix 迁移到 Sentinel · alibaba/Sentinel Wiki](https://github.com/alibaba/Sentinel/wiki/Guideline:-%E4%BB%8E-Hystrix-%E8%BF%81%E7%A7%BB%E5%88%B0-Sentinel)
+
+![kSh3sS](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/kSh3sS.png)
+
+## 15 Sentinel规则持久化
+
+- [Sentinel 实战-规则持久化 - 掘金](https://juejin.im/post/5c360bd2f265da616d546072)
+
+- Sentinel的规则在重启后会消失，生产环境中需要持久化
+  
+  - 我们可以将Sentinel的规则持久化到Nacos中：
+    
+    - 例如，我们想持久化针对8401服务模块的Sentinel规则
+    
+    - 1、修改8401的POM文件，引入`sentinel-datasource-nacos`做持久化
+    
+    - 2、修改8401的主配置文件：
+    
+    ```yml
+    server:
+      port: 8401
+    
+    spring:
+      application:
+        name: cloudalibaba-sentinel-service
+      cloud:
+        nacos:
+          discovery:
+            server-addr: 127.0.0.1:8848
+        sentinel:
+          transport:
+            dashboard: 127.0.0.1:8080
+            # 默认为8719，如果被占用会自动+1，直到找到为止
+            port: 8719
+          # 流控规则持久化到nacos
+          datasource:
+            dsl:
+              nacos:
+                server-addr: 127.0.0.1:8848
+                # 下面是在Nacos中对应的配置信息
+                data-id: ${spring.application.name}
+                group-id: DEFAULT_GROUP
+                data-type: json
+                rule-type: flow
+    
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: "*"
+    ```
+    
+    - 3、在Nacos中新建与8401主配置文件中对应的配置信息：![eR42qE](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/eR42qE.png)
+      
+      JSON配置文件内容中粘贴下面的信息：
+      
+      ![fMs1ye](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/fMs1ye.png)
+    
+    - 4、重启8401，Sentinel可以从Nacos中读取流控规则：![pI4SC9](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/pI4SC9.png)
+    
+    - 5、访问 http://127.0.0.1:8401/testB 流控规则有效
+
+## 16 使用Seata处理分布式事务
+
+- **事务**是指由一组操作组成的一个工作单元，这个工作单元具有原子性（atomicity）、一致性（consistency）、隔离性（isolation）和持久性（durability）。【ACID】
+  
+  - **原子性**：执行单元中的操作要么全部执行成功，要么全部失败。如果有一部分成功一部分失败那么成功的操作要全部回滚到执行前的状态。
+  
+  - **一致性**：执行一次事务会使用数据从一个正确的状态转换到另一个正确的状态，执行前后数据都是完整的。 
+  
+  - **隔离性**：在该事务执行的过程中，任何数据的改变只存在于该事务之中，对外界没有影响，事务与事务之间是完全的隔离的。只有事务提交后其它事务才可以查询到最新的数据。
+  
+  - **持久性**：事务完成后对数据的改变会永久性的存储起来，即使发生断电宕机数据依然在。
+
+- **本地事务**就是用关系数据库来控制事务，关系数据库通常都具有ACID特性，传统的单体应用通常会将数据全部存储在一个数据库中，会借助关系数据库来完成事务控制。
+
+- **分布式事务**就是指事务的参与者、支持事务的服务器、资源服务器以及事务管理器分别位于不同的分布式系统的不同节点之上。简单的说，就是一次大的操作由不同的小操作组成，这些小的操作分布在不同的服务器上，且属于不同的应用，分布式事务需要保证这些小操作要么全部成功，要么全部失败。本质上来说，分布式事务就是为了保证不同数据库的数据一致性。
+
+- BASE: 是 Basically Available(基本可用)、Soft state(软状态)和 Eventually consistent (最终一致性)三个短语的缩写
+  
+  - 基本可用:分布式系统在出现故障时，允许损失部分可用功能，保证核心功能可用。
+  
+  - 软状态:允许系统中存在中间状态，这个状态不影响系统可用性，这里指的是CAP中的不一致。
+  
+  - 最终一致:最终一致是指经过一段时间后，所有节点数据都将会达到一致。
+
+- BASE解决了CAP中理论没有网络延迟，在BASE中用软状态和最终一致，保证了延迟后的一致性。BASE和 ACID 是相反的，它完全不同于ACID的强一致性模型，而是通过牺牲强一致性来获得可用性，并允许数据在一段时间内是不一致的，但最终达到一致状态。
+
+### 16.1 分布式事务概述
+
+[Java微服务下的分布式事务介绍及其解决方案_Java_oldshaui的博客-CSDN博客](https://blog.csdn.net/oldshaui/article/details/88743085)
+
+[再有人问你分布式事务，把这篇扔给他 - 掘金](https://juejin.im/post/5b5a0bf9f265da0f6523913b)
+
+- 多数据库、多数据源环境下的事务处理
+
+- 例如：用户购买商品的业务。整个业务由3个微服务提供支持：
+  
+  - 仓储服务：扣除商品的库存数量
+  
+  - 订单服务：根据采购需求创建订单
+  
+  - 账户服务：从账户中扣除余额
+
+- ![I86euH](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/I86euH.png)
+
+### 16.2 Seata概述
+
+- [Seata 是什么](https://seata.io/zh-cn/docs/overview/what-is-seata.html)
+
+- Seata 是一款开源的分布式事务解决方案，致力于提供高性能和简单易用的分布式事务服务。Seata 将为用户提供了 AT、TCC、SAGA 和 XA 事务模式，为用户打造一站式的分布式解决方案。
+
+- **Transcation ID(XID)**:全局唯一的事务id
+
+- **TC - 事务协调者**：维护全局和分支事务的状态，驱动全局事务`提交`或`回滚`。
+
+- **TM - 事务管理器**：定义全局事务的范围：开始全局事务、提交或回滚全局事务。
+
+- **RM - 资源管理器**：管理分支事务处理的资源，与TC交谈以注册分支事务和报告分支事务的状态，并驱动分支事务提交或回滚。【可以理解为RM是一个个的数据库】
+
+- 处理过程：![Z785MM](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/Z785MM.png)
+  
+  - 1.TM向TC申请开启一个全局事务,全局事务创建成功并生成一个全局唯一的XD
+  
+  - 2.Ⅺ1D在微服务调用链路的上下文中传播;
+  
+  - 3.RM向TC注册分支事务,将其纳入XD对应全局事务的管辖;
+  
+  - 4.TM向TC发起针对XID的全局提交或回滚决议;
+  
+  - 5.TC调度ⅪD下管辖的全部分支事务完成提交或回滚请求
+
+### 16.3 Seata的安装与配置
+
+[Seata 参数配置](http://seata.io/zh-cn/docs/user/configurations.html)
+
+- 修改/conf文件夹下的file.conf文件，设置日志的存储：
+  
+  - 自定义事务组名称 + 事务日志存储模式设置为db + 数据库连接信息
+  
+  - 创建数据库seata，并运行[seata/script/server/db at develop · seata/seata · GitHub](https://github.com/seata/seata/tree/develop/script/server/db) 中的store.sql创建数据表
+
+- 修改/conf目录下的registry文件，将配置注册进Nacos做持久化：
+  
+  - 
 
 ## 参考资料
 
@@ -1159,3 +1400,17 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
 - [用 Postman 做接口自动化（六）Collection Runner 运行参数设置_网络_小满测试-CSDN博客](https://blog.csdn.net/minzhung/article/details/102502266)
 
 - [【Postman】10 Postman Runner的使用 - 知乎](https://zhuanlan.zhihu.com/p/109078237)
+
+- [Guideline: 从 Hystrix 迁移到 Sentinel · alibaba/Sentinel Wiki](https://github.com/alibaba/Sentinel/wiki/Guideline:-%E4%BB%8E-Hystrix-%E8%BF%81%E7%A7%BB%E5%88%B0-Sentinel)
+
+- [Sentinel 实战-规则持久化 - 掘金](https://juejin.im/post/5c360bd2f265da616d546072)
+
+- [seata/seata: Seata is an easy-to-use, high-performance, open source distributed transaction solution.](https://github.com/seata/seata)
+
+- [Java微服务下的分布式事务介绍及其解决方案_Java_oldshaui的博客-CSDN博客](https://blog.csdn.net/oldshaui/article/details/88743085)
+
+- [再有人问你分布式事务，把这篇扔给他 - 掘金](https://juejin.im/post/5b5a0bf9f265da0f6523913b)
+
+- [Seata 中文官网](https://seata.io/zh-cn/)
+
+- [Seata 中文文档](https://seata.io/zh-cn/docs/overview/what-is-seata.html)
