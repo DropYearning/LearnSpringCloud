@@ -1361,9 +1361,109 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
   
   - 创建数据库seata，并运行[seata/script/server/db at develop · seata/seata · GitHub](https://github.com/seata/seata/tree/develop/script/server/db) 中的store.sql创建数据表
 
-- 修改/conf目录下的registry文件，将配置注册进Nacos做持久化：
+- 修改/conf目录下的registry文件，将配置注册进Nacos做持久化
+
+- 启动时先启动Nacos，再启动Seata
+
+
+
+### 16.4 订单/库存/账户业务数据库准备
+
+- 需要三个微服务，一个订单服务，一个库存服务，一个账户服务 【下订单—> 减库存 -> 减余额 -> 改订单状态】
+
+- 当用户下单时，会在订单服务中创建一个订单，然后通过远程调用库存服务来减少商品的库存，再通过远程调用账户服务来减少用户账户的余额。最终在订单服务中标记订单状态为已完成。
+
+- 显然，需要有三个数据库。存在2次远程调用，明显会有分布式事务的问题。
   
-  - 
+  - `seata_order` 存储订单的数据库
+  
+  ```sql
+  CREATE TABLE `t_order` (
+    `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `user_id` BIGINT(11) DEFAULT NULL,
+  	`product_id` BIGINT(11) DEFAULT NULL,
+    `count` int(11) DEFAULT NULL,
+  	`money` DECIMAL(11,0) DEFAULT NULL,
+  	`status` INT(1) DEFAULT NULL COMMENT '订单状态，0表示创建中，1表示已经完成'
+  ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8;
+  
+  ```
+  
+  - `seata_storage`存储库存的数据库
+  
+  ```sql
+  CREATE TABLE `t_storage` (
+    `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  	`product_id` BIGINT(11) DEFAULT NULL,
+  	`total` int(11) DEFAULT NULL,
+    `used` int(11) DEFAULT NULL,
+    `residue` int(11) DEFAULT NULL
+  ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
+  ```
+  
+  - `seata_account`存储账户信息的数据库
+  
+  ```sql
+  CREATE TABLE `t_storage` (
+    `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  	`user_id` BIGINT(11) DEFAULT NULL,
+  	`total` DECIMAL(10,0) DEFAULT NULL,
+    `used` DECIMAL(10,0) DEFAULT NULL,
+    `residue` DECIMAL(10,0) DEFAULT '0'
+  ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
+  ```
+
+- 在三个数据库中都建立回滚日志表，都执行一次/seata/conf目录下的`db_undo_log.sql`
+
+
+
+### 16.5 订单微服务order-module 2001的编写
+
+- 1、引入POM
+
+- 2、修改主配置文件
+
+- 3、复制seata目录下的file.conf到/resources目录下。注意修改服务组名、MySQL数据库连接信息
+
+- 5、复制seata目录下的file.conf到/resources目录下。注意修改Nacos配置
+
+- 6、编写Domain实体类与数据库表对应
+
+- 7、编写dao.OrderDao接口实现MyBatis操作数据库。一共两个方法，create方法新建订单，update方法更新订单状态【是否已经完成】
+
+- 8、编写OrderMapper.xml配置接口对应的SQL
+
+- 9、编写2个Service接口StorageService和AccountService用于Feign远程调用生产者提供的服务
+
+- 10、编写OrderService接口和OrderServiceIml实现类
+
+- 11、编写Controller，暴露 /order/create 来创建订单
+
+- 12、编写`MyBatisConfig`完成Mybaits相关配置，使用seata管理数据源(使用seata对数据源进行代理)
+
+- 13、编写主启动类`@SpringBootApplication(exclude = DataSourceAutoConfiguration.class) //取消数据源自动创造`
+
+- 14、先启动Nacos和Seata，再启动2001微服务
+
+### 16.6 库存微服务storage-module 2002的编写
+
+- 大部分操作和2001一样
+
+
+
+### 16.5 库存微服务account-module的编写
+
+- 大部分操作和2001一样
+
+### 16.6 不使用Seata的@GlobalTransactional注解时存在的问题
+
+- 准备好环境：空的t_order表，存在库存记录和账户记录的t_storage和t_accout
+
+- 在没有加@GlobalTransactional是如果在业务处理时出现异常：
+
+- 
+
+
 
 ## 参考资料
 
