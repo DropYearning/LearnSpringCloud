@@ -1404,7 +1404,7 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
   - `seata_account`存储账户信息的数据库
   
   ```sql
-  CREATE TABLE `t_storage` (
+  CREATE TABLE `t_account` (
     `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   	`user_id` BIGINT(11) DEFAULT NULL,
   	`total` DECIMAL(10,0) DEFAULT NULL,
@@ -1459,9 +1459,51 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
 
 - 准备好环境：空的t_order表，存在库存记录和账户记录的t_storage和t_accout
 
-- 在没有加@GlobalTransactional是如果在业务处理时出现异常：
+- （一）测试在**没有加@GlobalTransactional，并且没有超时异常**的情况：
+  
+  - ![QG9dUS](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/QG9dUS.png)
+  
+  - 在没有发生异常的情况下，不会出现事务问题
 
-- 
+- （二）测试在**没有加@GlobalTransactional，发生超时异常**的情况：
+  
+  - 在`seata-account-service2003`的`AccountServiceImpl`方法中sleep20秒，由于Feign默认等待时间是1s，所以肯定会报超时异常
+  
+  - ![](/Users/brightzh/Library/Application%20Support/marktext/images/2020-05-07-00-30-34-image.png)
+  
+  - ![ac2RKt](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/ac2RKt.png)
+  
+  - ![RfiWox](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/RfiWox.png)
+  
+  - ![pt3OG5](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/pt3OG5.png)
+  
+  - 分析：调用库存模块正常，库存正常减少。账户模块虽然睡了20s，但是之后依然会完成扣款操作。而左右调用方的2001模块由于Feign的超时机制没有拿到返回结果，因此没能完成订单，显示订单状态为0。
+
+
+
+
+
+### 16.7 使用Seata的@GlobalTransactional解决分布式事务问题
+
+- 依旧保留超时异常问题，但是在`OrderServiceImpl`中添加@GlobalTransactional
+
+- `@GlobalTransactional(name = "cloud-create-order", rollbackFor = Exception.class) // 发生任何异常都回滚`
+  
+  - name属性可以随便取名字
+
+- ![](/Users/brightzh/Library/Application%20Support/marktext/images/2020-05-07-00-43-20-image.png)
+
+- 刷新数据库之后发现事务已经回滚
+
+
+
+### 16.8 Seata原理简介
+
+
+
+
+
+
 
 
 
