@@ -1365,8 +1365,6 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
 
 - 启动时先启动Nacos，再启动Seata
 
-
-
 ### 16.4 订单/库存/账户业务数据库准备
 
 - 需要三个微服务，一个订单服务，一个库存服务，一个账户服务 【下订单—> 减库存 -> 减余额 -> 改订单状态】
@@ -1381,12 +1379,11 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
   CREATE TABLE `t_order` (
     `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `user_id` BIGINT(11) DEFAULT NULL,
-  	`product_id` BIGINT(11) DEFAULT NULL,
+      `product_id` BIGINT(11) DEFAULT NULL,
     `count` int(11) DEFAULT NULL,
-  	`money` DECIMAL(11,0) DEFAULT NULL,
-  	`status` INT(1) DEFAULT NULL COMMENT '订单状态，0表示创建中，1表示已经完成'
+      `money` DECIMAL(11,0) DEFAULT NULL,
+      `status` INT(1) DEFAULT NULL COMMENT '订单状态，0表示创建中，1表示已经完成'
   ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8;
-  
   ```
   
   - `seata_storage`存储库存的数据库
@@ -1394,8 +1391,8 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
   ```sql
   CREATE TABLE `t_storage` (
     `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  	`product_id` BIGINT(11) DEFAULT NULL,
-  	`total` int(11) DEFAULT NULL,
+      `product_id` BIGINT(11) DEFAULT NULL,
+      `total` int(11) DEFAULT NULL,
     `used` int(11) DEFAULT NULL,
     `residue` int(11) DEFAULT NULL
   ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
@@ -1406,16 +1403,14 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
   ```sql
   CREATE TABLE `t_account` (
     `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  	`user_id` BIGINT(11) DEFAULT NULL,
-  	`total` DECIMAL(10,0) DEFAULT NULL,
+      `user_id` BIGINT(11) DEFAULT NULL,
+      `total` DECIMAL(10,0) DEFAULT NULL,
     `used` DECIMAL(10,0) DEFAULT NULL,
     `residue` DECIMAL(10,0) DEFAULT '0'
   ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
   ```
 
 - 在三个数据库中都建立回滚日志表，都执行一次/seata/conf目录下的`db_undo_log.sql`
-
-
 
 ### 16.5 订单微服务order-module 2001的编写
 
@@ -1449,13 +1444,11 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
 
 - 大部分操作和2001一样
 
-
-
-### 16.5 库存微服务account-module的编写
+### 16.7 库存微服务account-module的编写
 
 - 大部分操作和2001一样
 
-### 16.6 不使用Seata的@GlobalTransactional注解时存在的问题
+### 16.8不使用Seata的@GlobalTransactional注解时存在的问题
 
 - 准备好环境：空的t_order表，存在库存记录和账户记录的t_storage和t_accout
 
@@ -1479,11 +1472,7 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
   
   - 分析：调用库存模块正常，库存正常减少。账户模块虽然睡了20s，但是之后依然会完成扣款操作。而左右调用方的2001模块由于Feign的超时机制没有拿到返回结果，因此没能完成订单，显示订单状态为0。
 
-
-
-
-
-### 16.7 使用Seata的@GlobalTransactional解决分布式事务问题
+### 16.9 使用Seata的@GlobalTransactional解决分布式事务问题
 
 - 依旧保留超时异常问题，但是在`OrderServiceImpl`中添加@GlobalTransactional
 
@@ -1495,13 +1484,57 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
 
 - 刷新数据库之后发现事务已经回滚
 
+### 16.10 Seata原理简介
 
+- ![](/Users/brightzh/Library/Application%20Support/marktext/images/2020-05-07-11-47-34-image.png)
+  
+  - **Transcation ID(XID)**:全局唯一的事务id
+  
+  - **RM - 资源管理器**：管理分支事务处理的资源，与TC交谈以注册分支事务和报告分支事务的状态，并驱动分支事务提交或回滚。【可以理解为RM是一个个的数据库】
+  
+  - **TC - 事务协调者**：维护全局和分支事务的状态，驱动全局事务`提交`或`回滚`。
+  
+  - **TM - 事务管理器**：定义全局事务的范围：开始全局事务、提交或回滚全局事务
 
-### 16.8 Seata原理简介
+- 【Seata AT 模式】执行流程：
+  
+  - TM开启分布式事务（TM向TC注册全局事务记录）
+  
+  - 按业务场景，编排数据库、服务等事务内资源（RM向TC汇报资源准备状态）
+  
+  - TM结束分布式事务，事务一阶段结束（TM通知TC提交/回滚分布式事务）
+  
+  - TC汇总事务信息，决定分布式事务是提交还是回滚
+  
+  - TC通知所有RM 提交/回滚，事务二阶段结束
 
+- 【一阶段】：业务数据和回滚日志记录在同一个本地事务中提交，释放本地锁和连接资源。
+  
+  - 在一阶段, Seata会拦截“业务SQL
+    
+    ![NOa3UM](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/NOa3UM.png)
+    
+    - 1、解析SQL语义,找到“业务SQL"要更新的业务数据,在业务数据被更新前,将其保存成" **before image**"（前置镜像）
+    
+    - 2、执行“业务SQL”更新业务数据,在业务数据更新之后,
+    
+    - 3、其保存成" **after image**”,最后生成行锁。
+    
+    - 以上操作全部在一个数据库事务内完成,这样保证了一阶段操作的原子性。
 
+- 【二阶段】：
+  
+  - 提交异步化，非常快速地完成。
+  - 回滚通过一阶段的回滚日志进行反向补偿
+  - 1、二阶段如过顺利提交的话,因为业务SQL在一阶段已经提交至数据库,所以 Seata框架只需将一阶段保存的快照数据和行锁删掉,完成数据清理即可
+    - ![Gi2NP7](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/Gi2NP7.png)
+  - 2、二阶段如果发生异常
+    - 二阶段如果是回滚的话, Seata就需要回滚一阶段已经执行的"业务SQL",还原业务数据
+    - 回滚方式便是用" before image”还原业务数据;但在还原前要首先要校验脏写,对比“数据库当前业务数据”和 "after image"
+    - 如果两份数据完全一致就说明没有脏写,可以还原业务数据,如果不—致就说明有脏写,出现脏写就需要转人工处理。
+    - ![lq6db0](https://gitee.com/pxqp9W/testmarkdown/raw/master/imgs/2020/05/lq6db0.png)
 
-
+- 
 
 
 
@@ -1556,3 +1589,9 @@ Sentinel 提供了 `@SentinelResource` 注解用于定义资源，并提供了
 - [Seata 中文官网](https://seata.io/zh-cn/)
 
 - [Seata 中文文档](https://seata.io/zh-cn/docs/overview/what-is-seata.html)
+
+- [Seata AT 模式](https://seata.io/zh-cn/docs/dev/mode/at-mode.html)
+
+- [分布式事务中间件Seata的设计原理](http://objcoding.com/2019/07/11/seata/)
+
+- 
